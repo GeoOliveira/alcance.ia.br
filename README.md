@@ -11,6 +11,7 @@ Primeira fase da plataforma brasileira **Alcance IA**: landing page instituciona
 - Supabase (PostgreSQL e estrutura preparada para Auth)
 - Zod para validação no servidor
 - Vitest para testes unitários
+- Vercel Web Analytics e Speed Insights, condicionados ao consentimento analítico
 - Vercel como destino de hospedagem
 
 ## Estrutura principal
@@ -63,8 +64,7 @@ Copie `.env.example` para `.env.local`. Nunca envie `.env.local` ao Git.
 | `ANALYSIS_DEDUP_WINDOW_SECONDS` | Janela de deduplicação por sessão e perfil |
 | `ANALYSIS_RETENTION_DAYS` | Prazo inicial das solicitações anônimas |
 | `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | Google Analytics, condicionado ao consentimento |
-| `NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID` | Preparação para GTM |
-| `NEXT_PUBLIC_CLARITY_ID` | Preparação para Microsoft Clarity |
+| `NEXT_PUBLIC_CLARITY_ID` | Microsoft Clarity opcional, condicionado ao consentimento e com formulários mascarados |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Preparação para Meta Pixel |
 | `NEXT_PUBLIC_PINTEREST_TAG_ID` | Preparação para Pinterest Tag |
 | `NEXT_PUBLIC_REDDIT_PIXEL_ID` | Preparação para Reddit Pixel |
@@ -102,11 +102,11 @@ Em produção, configure `RATE_LIMIT_BACKEND=supabase`. O modo `memory` falha de
 
 ## Cookies e analytics
 
-O banner permite aceitar todos, rejeitar não essenciais ou configurar as categorias essenciais, funcionais, analíticas e marketing. A escolha fica em `localStorage` e pode ser reaberta pelo rodapé. A camada de analytics não injeta Google Analytics antes do consentimento analítico e ignora identificadores vazios.
+O banner permite aceitar todos, rejeitar não essenciais ou configurar as categorias essenciais, funcionais, analíticas e marketing. A escolha versionada, com timestamp, fica em `localStorage` e pode ser reaberta pelo rodapé. GA4, Clarity, Vercel Web Analytics e Speed Insights só são carregados após consentimento analítico e ignoram identificadores vazios.
 
-Os eventos preparados estão tipados em `src/lib/analytics/events.ts`: `page_view`, `hero_cta_click`, `analysis_form_started`, `analysis_request_submitted`, `analysis_preview_viewed`, `signup_started`, `signup_completed`, `contact_form_submitted`, `cookie_consent_updated`, `login_clicked` e `legal_page_viewed`.
+Os eventos do funil são tipados e passam por uma única função, que remove propriedades não permitidas e evita duplicação. A atribuição preserva first touch e last touch; somente o first touch é enviado nos campos UTM atuais da solicitação. Consulte `docs/analytics-e-funil.md` para a taxonomia completa e as fórmulas.
 
-Antes de ativar novos pixels, conecte cada adaptador à categoria correta e valide a revogação do consentimento.
+GA4 é a arquitetura principal; GTM não é carregado em paralelo. Meta, Pinterest e Reddit permanecem interfaces futuras e inativas. Antes de ativá-los, conecte cada adaptador à categoria de marketing e valide a revogação do consentimento.
 
 ## Resend (opcional e futuro)
 
@@ -148,7 +148,7 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 - sem pagamentos, planos, créditos ou painel;
 - o banco remoto precisa receber as migrations versionadas antes de ativar os formulários em produção;
 - templates jurídicos exigem revisão profissional;
-- integrações de analytics adicionais permanecem desacopladas e inativas.
+- GA4 e Clarity dependem de configuração manual; pixels de marketing permanecem inativos.
 
 ## Próximos passos recomendados
 
@@ -159,4 +159,4 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 5. Implementar fila assíncrona e estados reais de análise.
 6. Configurar Turnstile e monitoramento operacional em produção.
 7. Verificar domínio de e-mail no Resend.
-8. Conectar analytics progressivamente após testes de consentimento.
+8. Configurar GA4, habilitar os painéis da Vercel e validar eventos com consentimento em produção.

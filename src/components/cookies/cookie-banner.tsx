@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CONSENT_KEY, defaultConsent, parseConsent, type CookieConsent } from "@/lib/cookies/consent";
+import { CONSENT_KEY, defaultConsent, parseConsent, storeConsent, type CookieConsent } from "@/lib/cookies/consent";
 import { trackEvent } from "@/lib/analytics/events";
 
 export function CookieBanner() {
@@ -16,12 +16,15 @@ export function CookieBanner() {
       if (stored) setChoices(stored); else {
         returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         setVisible(true);
+        trackEvent("cookie_banner_viewed");
       }
     });
     const open = () => {
       returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setVisible(true);
       setCustomizing(true);
+      trackEvent("cookie_banner_viewed");
+      trackEvent("cookie_preferences_opened");
     };
     window.addEventListener("alcance:open-cookies", open);
     return () => { cancelAnimationFrame(frame); window.removeEventListener("alcance:open-cookies", open); };
@@ -34,9 +37,13 @@ export function CookieBanner() {
 
   function save(consent: CookieConsent) {
     const next = { ...consent, essential: true as const, updatedAt: new Date().toISOString() };
-    localStorage.setItem(CONSENT_KEY, JSON.stringify(next));
+    storeConsent(next);
     setChoices(next); setVisible(false); setCustomizing(false);
-    trackEvent("cookie_consent_updated", { analytics: next.analytics, marketing: next.marketing });
+    requestAnimationFrame(() => trackEvent("cookie_consent_updated", {
+      consent_category: "analytics",
+      analytics_enabled: next.analytics,
+      marketing_enabled: next.marketing,
+    }));
     returnFocusRef.current?.focus();
   }
 
@@ -62,7 +69,7 @@ export function CookieBanner() {
   if (!visible) return null;
   return <div className="cookie-shell" role="dialog" aria-modal="true" aria-labelledby="cookie-title" aria-describedby="cookie-description" onKeyDown={keepFocusInside}><div className="cookie-card"><div><span className="eyebrow">Sua escolha importa</span><h2 ref={titleRef} tabIndex={-1} id="cookie-title">Cookies com transparência</h2><p id="cookie-description">Usamos cookies essenciais para o site funcionar. Os demais só serão ativados com a sua permissão. <Link href="/politica-de-cookies">Saiba mais</Link>.</p></div>
     {customizing && <div className="cookie-options"><CookieToggle label="Essenciais" description="Necessários para segurança e preferências." checked disabled /><CookieToggle label="Funcionais" description="Lembram escolhas úteis no dispositivo." checked={choices.functional} onChange={(v) => setChoices({ ...choices, functional: v })} /><CookieToggle label="Analíticos" description="Ajudam a entender o uso do site." checked={choices.analytics} onChange={(v) => setChoices({ ...choices, analytics: v })} /><CookieToggle label="Marketing" description="Medição futura de campanhas." checked={choices.marketing} onChange={(v) => setChoices({ ...choices, marketing: v })} /></div>}
-    <div className="cookie-actions">{!customizing && <button className="button button-ghost" onClick={() => setCustomizing(true)}>Configurar</button>}<button className="button button-ghost" onClick={() => save(defaultConsent())}>Rejeitar não essenciais</button>{customizing ? <button className="button" onClick={() => save(choices)}>Salvar preferências</button> : <button className="button" onClick={() => save({ ...defaultConsent(), functional: true, analytics: true, marketing: true })}>Aceitar todos</button>}</div></div></div>;
+    <div className="cookie-actions">{!customizing && <button className="button button-ghost" onClick={() => { setCustomizing(true); trackEvent("cookie_preferences_opened"); }}>Configurar</button>}<button className="button button-ghost" onClick={() => save(defaultConsent())}>Rejeitar não essenciais</button>{customizing ? <button className="button" onClick={() => save(choices)}>Salvar preferências</button> : <button className="button" onClick={() => save({ ...defaultConsent(), functional: true, analytics: true, marketing: true })}>Aceitar todos</button>}</div></div></div>;
 }
 
 function CookieToggle({ label, description, checked, disabled = false, onChange }: { label: string; description: string; checked: boolean; disabled?: boolean; onChange?: (value: boolean) => void }) {

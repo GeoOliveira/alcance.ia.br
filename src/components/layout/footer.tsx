@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AnalyticsLink } from "@/components/analytics/analytics-link";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/ui/logo";
 import { CookiePreferencesButton } from "@/components/cookies/cookie-preferences-button";
@@ -10,7 +10,7 @@ const columns = [
 ];
 
 export function Footer() {
-  return <footer className="site-footer"><Container><div className="footer-grid"><div className="footer-brand"><Logo /><p>Tecnologia para transformar sinais digitais em decisões mais claras.</p><span className="made-in">◉ Projeto brasileiro em desenvolvimento</span></div>{columns.map((column) => <div key={column.title}><h2>{column.title}</h2>{column.links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div>)}</div>
+  return <footer className="site-footer"><Container><div className="footer-grid"><div className="footer-brand"><Logo /><p>Tecnologia para transformar sinais digitais em decisões mais claras.</p><span className="made-in">◉ Projeto brasileiro em desenvolvimento</span></div>{columns.map((column) => <div key={column.title}><h2>{column.title}</h2>{column.links.map(([label, href]) => <AnalyticsLink key={href} href={href} eventName="navigation_clicked" properties={{ navigation_target: href, cta_location: "footer" }}>{label}</AnalyticsLink>)}</div>)}</div>
     <div className="footer-bottom"><span>© {new Date().getFullYear()} Alcance IA</span><CookiePreferencesButton /></div>
   </Container></footer>;
 }

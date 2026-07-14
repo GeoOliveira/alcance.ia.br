@@ -10,6 +10,7 @@ export function ContactForm() {
   const protection = useFormProtection("contact");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [started, setStarted] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,6 +21,7 @@ export function ContactForm() {
       return;
     }
     setState("loading");
+    trackEvent("contact_form_submitted", { form_name: "contact" });
     const formElement = event.currentTarget;
     const form = new FormData(formElement);
     const payload = {
@@ -32,6 +34,7 @@ export function ContactForm() {
       formToken: protection.formToken,
       turnstileToken: protection.turnstileToken,
     };
+    let responseStatus = 0;
     try {
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -41,13 +44,18 @@ export function ContactForm() {
         },
         body: JSON.stringify(payload),
       });
+      responseStatus = response.status;
       const data = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Não foi possível enviar.");
+      if (!response.ok) {
+        trackEvent("contact_form_failed", { form_name: "contact", error_code: `http_${response.status}` });
+        throw new Error(data.error || "Não foi possível enviar.");
+      }
       setState("success");
-      trackEvent("contact_form_submitted");
+      trackEvent("contact_form_succeeded", { form_name: "contact" });
       formElement.reset();
       protection.rotateSubmission();
     } catch (error) {
+      if (responseStatus === 0) trackEvent("contact_form_failed", { form_name: "contact", error_code: "network_error" });
       setState("error");
       setMessage(error instanceof Error ? error.message : "Tente novamente.");
     }
@@ -58,7 +66,7 @@ export function ContactForm() {
   }
   const visibleError = message || protection.protectionError;
   return (
-    <form className="stacked-form" onSubmit={submit}>
+    <form className="stacked-form" onSubmit={submit} data-clarity-mask="true" onFocus={() => { if (!started) { setStarted(true); trackEvent("contact_form_started", { form_name: "contact" }); } }}>
       <div className="form-row"><Field label="Nome" name="name" autoComplete="name" /><Field label="E-mail" name="email" type="email" autoComplete="email" /></div>
       <label>Assunto<select name="subject" required defaultValue=""><option value="" disabled>Selecione</option><option value="analysis">Dúvidas sobre a análise</option><option value="support">Suporte</option><option value="privacy">Privacidade e dados</option><option value="partnerships">Parcerias</option><option value="press">Imprensa</option><option value="other">Outro</option></select></label>
       <label>Mensagem<textarea name="message" rows={6} minLength={10} maxLength={3000} required placeholder="Conte como podemos ajudar." /></label>

@@ -10,6 +10,7 @@ export function SignupForm() {
   const protection = useFormProtection("signup");
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [started, setStarted] = useState(false);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -40,7 +41,10 @@ export function SignupForm() {
         }),
       });
       const data = (await response.json()) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Não foi possível continuar.");
+      if (!response.ok) {
+        trackEvent("server_action_failed", { form_name: "signup", error_code: `http_${response.status}` });
+        throw new Error(data.error || "Não foi possível continuar.");
+      }
       setState("success");
       trackEvent("signup_completed");
       protection.rotateSubmission();
@@ -52,7 +56,7 @@ export function SignupForm() {
 
   const visibleError = message || protection.protectionError;
   return (
-    <form className="stacked-form" onSubmit={submit} onFocus={() => trackEvent("signup_started")}>
+    <form className="stacked-form" onSubmit={submit} data-clarity-mask="true" onFocus={() => { if (!started) { setStarted(true); trackEvent("signup_started", { form_name: "signup" }); } }}>
       <label>Nome<input name="name" required autoComplete="name" maxLength={100} /></label>
       <label>E-mail<input name="email" type="email" required autoComplete="email" maxLength={160} /></label>
       <div className="security-note">Este é um formulário demonstrativo. O envio ainda não está conectado e nenhuma senha é solicitada.</div>
