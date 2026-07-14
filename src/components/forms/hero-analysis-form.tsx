@@ -7,9 +7,9 @@ import { attributionForSubmission } from "@/lib/analytics/attribution";
 import { TurnstileField } from "./turnstile-field";
 import { useFormProtection } from "./use-form-protection";
 
-export function HeroAnalysisForm() {
+export function HeroAnalysisForm({ enabled = true, buttonLabel = "Analisar meu perfil", unavailableMessage = "As solicitações estão temporariamente indisponíveis.", securityNotice = "Não solicitamos sua senha do Instagram. A análise utiliza apenas informações públicas ou dados autorizados pelo usuário." }: { enabled?: boolean; buttonLabel?: string; unavailableMessage?: string; securityNotice?: string }) {
   const router = useRouter();
-  const protection = useFormProtection("analysis");
+  const protection = useFormProtection("analysis", enabled);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,6 +22,7 @@ export function HeroAnalysisForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    if (!enabled) { setError(unavailableMessage); return; }
     if (!protection.ready) {
       setError(protection.protectionError || "Aguarde a proteção do formulário carregar.");
       trackEvent("analysis_form_validation_error", { form_name: "analysis", error_code: "protection_not_ready" });
@@ -89,17 +90,18 @@ export function HeroAnalysisForm() {
           autoCorrect="off"
           maxLength={300}
           required
-          aria-describedby={visibleError ? "instagram-help instagram-error" : "instagram-help"}
+          disabled={!enabled}
+          aria-describedby={visibleError || !enabled ? "instagram-help instagram-error" : "instagram-help"}
           aria-invalid={Boolean(visibleError)}
         />
-        <button className="button" type="submit" disabled={loading || !protection.ready}>
-          {loading ? "Enviando…" : "Analisar meu perfil"}<span aria-hidden="true">→</span>
+        <button className="button" type="submit" disabled={!enabled || loading || !protection.ready}>
+          {loading ? "Enviando…" : enabled ? buttonLabel : "Indisponível"}<span aria-hidden="true">→</span>
         </button>
       </div>
       <p id="instagram-help" className="form-note">
-        <span aria-hidden="true">✓</span> Não solicitamos sua senha do Instagram. A análise utiliza apenas informações públicas ou dados autorizados pelo usuário.
+        <span aria-hidden="true">✓</span> {securityNotice}
       </p>
-      {visibleError && <p id="instagram-error" className="form-error" role="alert">{visibleError}</p>}
+      {(visibleError || !enabled) && <p id="instagram-error" className="form-error" role="alert">{visibleError || unavailableMessage}</p>}
       <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <TurnstileField onToken={protection.setTurnstileToken} />
     </form>

@@ -11,6 +11,9 @@ import {
   successResponse,
 } from "@/lib/security/http";
 import { idempotencyKey, verifySubmission } from "@/lib/security/submission";
+import { getPublicSettings } from "@/lib/settings/get-settings";
+import { getPublicFlags } from "@/lib/settings/public-content";
+import { isPublicFormAvailable } from "@/lib/settings/availability";
 
 const sessionCookie = "alcance_anonymous_session";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -18,6 +21,10 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID();
   try {
+    const [settings, flags] = await Promise.all([getPublicSettings(), getPublicFlags()]);
+    if (!isPublicFormAvailable("analysis", settings, flags)) {
+      throw new SafeHttpError(503, "analysis_unavailable", "As solicitações estão temporariamente indisponíveis.");
+    }
     const limit = await checkRateLimit(request, "analysis");
     if (!limit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "Serviço temporariamente indisponível.");
     if (!limit.allowed) {

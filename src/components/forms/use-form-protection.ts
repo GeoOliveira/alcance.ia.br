@@ -11,22 +11,24 @@ async function fetchFormToken(form: FormName) {
   return body.token;
 }
 
-export function useFormProtection(form: FormName) {
+export function useFormProtection(form: FormName, enabled = true) {
   const [formToken, setFormToken] = useState("");
   const [turnstileToken, setTurnstileToken] = useState("");
   const [protectionError, setProtectionError] = useState("");
   const idempotencyKey = useRef(crypto.randomUUID());
 
   const refreshToken = useCallback(async () => {
+    if (!enabled) return;
     setProtectionError("");
     try {
       setFormToken(await fetchFormToken(form));
     } catch (error) {
       setProtectionError(error instanceof Error ? error.message : "Atualize a página e tente novamente.");
     }
-  }, [form]);
+  }, [enabled, form]);
 
   useEffect(() => {
+    if (!enabled) return;
     let active = true;
     fetchFormToken(form)
       .then((token) => {
@@ -38,7 +40,7 @@ export function useFormProtection(form: FormName) {
     return () => {
       active = false;
     };
-  }, [form]);
+  }, [enabled, form]);
 
   const rotateSubmission = useCallback(() => {
     idempotencyKey.current = crypto.randomUUID();

@@ -4,12 +4,16 @@ const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   verifySubmission: vi.fn(),
   checkRateLimit: vi.fn(),
+  getPublicSettings: vi.fn(),
+  getPublicFlags: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({ from: () => ({ insert: mocks.insert }) }),
 }));
 vi.mock("@/lib/security/rate-limit", () => ({ checkRateLimit: mocks.checkRateLimit }));
+vi.mock("@/lib/settings/get-settings", () => ({ getPublicSettings: mocks.getPublicSettings }));
+vi.mock("@/lib/settings/public-content", () => ({ getPublicFlags: mocks.getPublicFlags }));
 vi.mock("@/lib/security/submission", async (importOriginal) => {
   const original = await importOriginal<typeof import("@/lib/security/submission")>();
   return { ...original, verifySubmission: mocks.verifySubmission };
@@ -45,6 +49,8 @@ describe("POST /api/contact", () => {
     mocks.checkRateLimit.mockResolvedValue({ allowed: true, available: true, retryAfter: 0 });
     mocks.verifySubmission.mockResolvedValue(undefined);
     mocks.insert.mockResolvedValue({ error: null });
+    mocks.getPublicSettings.mockResolvedValue({ maintenanceEnabled: false });
+    mocks.getPublicFlags.mockResolvedValue({ contact_form: true });
   });
 
   it("persists a validated submission with its idempotency key", async () => {
@@ -67,6 +73,13 @@ describe("POST /api/contact", () => {
   it("rejects an oversized payload before persistence", async () => {
     const response = await POST(request({ ...body, message: "a".repeat(9000) }));
     expect(response.status).toBe(413);
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it("fails closed while the public contact form is disabled", async () => {
+    mocks.getPublicFlags.mockResolvedValue({ contact_form: false });
+    const response = await POST(request());
+    expect(response.status).toBe(503);
     expect(mocks.insert).not.toHaveBeenCalled();
   });
 });
