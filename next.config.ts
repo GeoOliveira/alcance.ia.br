@@ -14,7 +14,7 @@ const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://connect.facebook.net https://s.pinimg.com https://www.redditstatic.com https://challenges.cloudflare.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://ct.pinterest.com https://alb.reddit.com https://www.clarity.ms",
+  "img-src 'self' data: blob: https://*.cdninstagram.com https://*.fbcdn.net https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://ct.pinterest.com https://alb.reddit.com https://www.clarity.ms",
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseConnections()} https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://www.facebook.com https://connect.facebook.net https://ct.pinterest.com https://alb.reddit.com https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://challenges.cloudflare.com",
@@ -29,6 +29,10 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  images: { remotePatterns: [
+    { protocol: "https", hostname: "**.cdninstagram.com" },
+    { protocol: "https", hostname: "**.fbcdn.net" },
+  ] },
   async headers() {
     return [
       {
