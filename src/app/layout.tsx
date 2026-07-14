@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   title: { default: "Alcance IA — análise inteligente para Instagram", template: "%s | Alcance IA" },
   description: siteConfig.description,
   alternates: { canonical: "/" },
-  openGraph: { type: "website", locale: "pt_BR", siteName: siteConfig.name, title: "Alcance IA", description: siteConfig.description, url: "/", images: [{ url: "/og.png", width: 1733, height: 909, alt: "Alcance IA — entenda seu perfil, amplie suas possibilidades" }] },
+  openGraph: { type: "website", locale: "pt_BR", siteName: siteConfig.name, title: "Alcance IA", description: siteConfig.description, url: "/", images: [{ url: "/og.png", width: 1731, height: 909, alt: "Alcance IA — entenda seu perfil, amplie suas possibilidades" }] },
   twitter: { card: "summary_large_image", title: "Alcance IA", description: siteConfig.description, images: ["/og.png"] },
   manifest: "/manifest.webmanifest",
 };

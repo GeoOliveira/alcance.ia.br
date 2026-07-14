@@ -56,6 +56,12 @@ Copie `.env.example` para `.env.local`. Nunca envie `.env.local` ao Git.
 | `NEXT_PUBLIC_SUPABASE_URL` | URL do projeto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Chave pública, reservada a usos futuros com RLS |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave privada usada somente nas rotas do servidor |
+| `FORM_PROTECTION_SECRET` | Assinatura HMAC dos tokens de tempo dos formulários; mínimo de 32 caracteres em produção |
+| `RATE_LIMIT_HASH_SECRET` | HMAC que pseudonimiza o endereço usado pelo limitador |
+| `RATE_LIMIT_BACKEND` | `memory` somente local; use `supabase` em Preview e Production |
+| `*_RATE_LIMIT_MAX` / `*_RATE_LIMIT_WINDOW_SECONDS` | Limites configuráveis por rota |
+| `ANALYSIS_DEDUP_WINDOW_SECONDS` | Janela de deduplicação por sessão e perfil |
+| `ANALYSIS_RETENTION_DAYS` | Prazo inicial das solicitações anônimas |
 | `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | Google Analytics, condicionado ao consentimento |
 | `NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID` | Preparação para GTM |
 | `NEXT_PUBLIC_CLARITY_ID` | Preparação para Microsoft Clarity |
@@ -73,24 +79,26 @@ Variáveis vazias não ativam integrações. `SUPABASE_SERVICE_ROLE_KEY`, `RESEN
 
 1. Abra o projeto Supabase existente.
 2. Acesse o SQL Editor.
-3. Execute `supabase/migrations/202607130001_initial_capture.sql` ou aplique com a Supabase CLI (`supabase db push`) após vincular o projeto.
+3. Revise e aplique, em ordem, `202607130001_initial_capture.sql` e `202607140002_form_security.sql`, ou use `supabase db push` após vincular a CLI ao projeto correto.
 4. Preencha URL, chave anon e chave `service_role` no ambiente local e na Vercel.
 5. Teste o formulário da Home e o formulário de contato.
 
-A migration cria `analysis_requests` e `contact_messages`, índices, validações e atualização automática de `updated_at`. RLS é habilitado e todos os privilégios de `anon` e `authenticated` são revogados. Não existe política pública de leitura ou inserção. Somente rotas no servidor usam `service_role`. Quando o Supabase Auth for implementado, novas políticas autenticadas e específicas deverão ser adicionadas.
+As migrations criam as tabelas, validações, RLS, idempotência, limitador distribuído e rotinas de deduplicação e expiração. Não existe política pública de leitura ou escrita. `authenticated` recebe somente leitura de solicitações cujo `user_id` corresponda a `auth.uid()`; as gravações públicas passam pelas rotas do servidor.
 
 ## Segurança e proteção contra abuso
 
 - validação e normalização com Zod no servidor;
 - `service_role` isolada por `server-only`;
-- rate limit básico em memória por impressão hash do IP, sem armazenar IP bruto;
-- honeypot em formulários públicos;
+- rate limit distribuído no PostgreSQL em produção, com memória apenas no desenvolvimento;
+- identificador do limitador pseudonimizado com HMAC, sem armazenar IP bruto;
+- honeypot, token assinado de tempo mínimo e Turnstile opcional;
+- idempotência por envio e deduplicação temporal atômica;
 - mensagens de erro sem detalhes internos;
 - cabeçalhos de segurança no Next.js;
 - entradas com limites de tamanho;
 - sem coleta de senha do Instagram.
 
-O limitador em memória é adequado apenas como primeira camada. Em produção com múltiplas funções serverless, substitua-o por um limitador distribuído e ative Cloudflare Turnstile.
+Em produção, configure `RATE_LIMIT_BACKEND=supabase`. O modo `memory` falha de forma fechada em produção porque instâncias serverless não compartilham memória. O Turnstile é opcional, mas as duas chaves devem ser configuradas juntas.
 
 ## Cookies e analytics
 
@@ -136,9 +144,9 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 - nenhuma consulta ou integração com Instagram;
 - nenhuma análise de perfil, conteúdo ou métricas;
 - nenhuma IA, geração de conteúdo ou automação;
-- cadastro apenas visual; senha validada e descartada, sem persistência;
+- cadastro apenas visual para registro de interesse, sem coleta de senha ou criação de conta;
 - sem pagamentos, planos, créditos ou painel;
-- rate limit local, não distribuído;
+- o banco remoto precisa receber as migrations versionadas antes de ativar os formulários em produção;
 - templates jurídicos exigem revisão profissional;
 - integrações de analytics adicionais permanecem desacopladas e inativas.
 
@@ -149,6 +157,6 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 3. Implementar Supabase Auth e políticas RLS vinculadas ao usuário.
 4. Definir uma fonte de dados autorizada e compatível com as políticas do Instagram.
 5. Implementar fila assíncrona e estados reais de análise.
-6. Adicionar rate limit distribuído, Turnstile e monitoramento.
+6. Configurar Turnstile e monitoramento operacional em produção.
 7. Verificar domínio de e-mail no Resend.
 8. Conectar analytics progressivamente após testes de consentimento.

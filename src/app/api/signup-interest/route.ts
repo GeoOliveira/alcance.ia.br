@@ -1,4 +1,37 @@
-import { NextResponse } from "next/server";
 import { signupSchema } from "@/lib/validation/forms";
-import { checkRateLimit, requestFingerprint } from "@/lib/security/rate-limit";
-export async function POST(request:Request){const limit=checkRateLimit(`${requestFingerprint(request)}:signup`,4,10*60_000);if(!limit.allowed)return NextResponse.json({error:"Muitas tentativas. Aguarde e tente novamente."},{status:429});try{const parsed=signupSchema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Revise os campos."},{status:400});/* A senha é validada e descartada. Supabase Auth será integrado em fase futura. */return NextResponse.json({ok:true,note:"interest_only"},{status:202})}catch{return NextResponse.json({error:"Solicitação inválida."},{status:400})}}
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import { errorResponse, readJsonBody, SafeHttpError } from "@/lib/security/http";
+import { idempotencyKey, verifySubmission } from "@/lib/security/submission";
+
+export async function POST(request: Request) {
+  const requestId = crypto.randomUUID();
+  try {
+    const limit = await checkRateLimit(request, "signup");
+    if (!limit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "Serviço temporariamente indisponível.");
+    if (!limit.allowed) {
+      return errorResponse(
+        new SafeHttpError(429, "rate_limited", "Muitas tentativas. Aguarde e tente novamente."),
+        requestId,
+        { "Retry-After": String(limit.retryAfter) },
+      );
+    }
+    const parsed = signupSchema.safeParse(await readJsonBody(request, 4096));
+    if (!parsed.success) {
+      throw new SafeHttpError(400, "validation_failed", parsed.error.issues[0]?.message || "Revise os campos.");
+    }
+    await verifySubmission(request, "signup", parsed.data);
+    idempotencyKey(request);
+    throw new SafeHttpError(
+      503,
+      "signup_unavailable",
+      "O registro de interesse ainda não está conectado. Nenhum dado foi salvo.",
+    );
+  } catch (error) {
+    return errorResponse(
+      error instanceof SafeHttpError
+        ? error
+        : new SafeHttpError(500, "unexpected", "Não foi possível concluir o envio."),
+      requestId,
+    );
+  }
+}

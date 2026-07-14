@@ -1,11 +1,77 @@
-import { NextResponse } from "next/server";
-import { contactSchema } from "@/lib/validation/forms";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { checkRateLimit, requestFingerprint } from "@/lib/security/rate-limit";
+import { contactSchema } from "@/lib/validation/forms";
+import { checkRateLimit } from "@/lib/security/rate-limit";
+import {
+  errorResponse,
+  logOperationFailure,
+  readJsonBody,
+  SafeHttpError,
+  successResponse,
+} from "@/lib/security/http";
+import { idempotencyKey, verifySubmission } from "@/lib/security/submission";
 
 export async function POST(request: Request) {
-  const limit=checkRateLimit(`${requestFingerprint(request)}:contact`,3,10*60_000);
-  if(!limit.allowed)return NextResponse.json({error:"Limite de mensagens atingido. Tente novamente mais tarde."},{status:429,headers:{"Retry-After":String(limit.retryAfter)}});
-  try{const body=await request.json();const parsed=contactSchema.safeParse(body);if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Revise os campos."},{status:400});if(parsed.data.website)return NextResponse.json({ok:true},{status:201});const admin=createAdminClient();if(!admin)return NextResponse.json({error:"O canal de contato ainda não está conectado. Configure o Supabase para receber mensagens."},{status:503});const {name,email,subject,message}=parsed.data;const {error}=await admin.from("contact_messages").insert({name,email,subject,message,privacy_accepted_at:new Date().toISOString(),status:"new"});if(error){console.error("contact_insert_failed",{code:error.code});return NextResponse.json({error:"Não foi possível registrar a mensagem."},{status:500})}
-    if(process.env.RESEND_API_KEY&&process.env.CONTACT_EMAIL){await fetch("https://api.resend.com/emails",{method:"POST",headers:{Authorization:`Bearer ${process.env.RESEND_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({from:"Alcance IA <onboarding@resend.dev>",to:[process.env.CONTACT_EMAIL],subject:`Contato Alcance IA: ${subject}`,text:`Nome: ${name}\nE-mail: ${email}\n\n${message}`})}).catch(()=>undefined)}return NextResponse.json({ok:true},{status:201})}catch{return NextResponse.json({error:"Solicitação inválida."},{status:400})}
+  const requestId = crypto.randomUUID();
+  try {
+    const limit = await checkRateLimit(request, "contact");
+    if (!limit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "Serviço temporariamente indisponível.");
+    if (!limit.allowed) {
+      return errorResponse(
+        new SafeHttpError(429, "rate_limited", "Limite de mensagens atingido. Tente mais tarde."),
+        requestId,
+        { "Retry-After": String(limit.retryAfter) },
+      );
+    }
+
+    const parsed = contactSchema.safeParse(await readJsonBody(request, 8192));
+    if (!parsed.success) {
+      throw new SafeHttpError(400, "validation_failed", parsed.error.issues[0]?.message || "Revise os campos.");
+    }
+    await verifySubmission(request, "contact", parsed.data);
+    const submissionKey = idempotencyKey(request);
+    const admin = createAdminClient();
+    if (!admin) throw new SafeHttpError(503, "storage_unavailable", "Serviço temporariamente indisponível.");
+
+    const { name, email, subject, message } = parsed.data;
+    const { error } = await admin.from("contact_messages").insert({
+      name,
+      email,
+      subject,
+      message,
+      idempotency_key: submissionKey,
+      privacy_accepted_at: new Date().toISOString(),
+      status: "new",
+    });
+    if (error && error.code !== "23505") {
+      logOperationFailure("contact_create", requestId, "database", error.code);
+      throw new SafeHttpError(500, "storage_failed", "Não foi possível registrar a mensagem.");
+    }
+
+    if (!error && process.env.RESEND_API_KEY && process.env.CONTACT_EMAIL) {
+      try {
+        const mailResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Alcance IA <onboarding@resend.dev>",
+            to: [process.env.CONTACT_EMAIL],
+            subject: `Contato Alcance IA: ${subject}`,
+            text: `Nome: ${name}\nE-mail: ${email}\n\n${message}`,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!mailResponse.ok) logOperationFailure("contact_notify", requestId, "provider_http");
+      } catch {
+        logOperationFailure("contact_notify", requestId, "provider_unavailable");
+      }
+    }
+    return successResponse({ ok: true }, error?.code === "23505" ? 200 : 201, requestId);
+  } catch (error) {
+    if (error instanceof SafeHttpError) return errorResponse(error, requestId);
+    logOperationFailure("contact_create", requestId, "unexpected");
+    return errorResponse(new SafeHttpError(500, "unexpected", "Não foi possível concluir o envio."), requestId);
+  }
 }
