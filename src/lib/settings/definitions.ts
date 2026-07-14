@@ -47,6 +47,16 @@ export const settingSchemas: Record<string, z.ZodType> = {
   "analytics.environment": z.enum(["all", "production", "preview", "development"]),
   "privacy.cookie_consent_version": z.string().min(1).max(20),
   "privacy.policy_version": z.string().min(1).max(30),
+  "scrapecreators.poc_enabled": z.boolean(),
+  "scrapecreators.poc_daily_request_limit": z.number().int().min(1).max(10000),
+  "scrapecreators.poc_max_pages_per_test": z.number().int().min(1).max(10),
+  "scrapecreators.poc_allow_force_refresh": z.boolean(),
+  "scrapecreators.poc_raw_retention_days": z.number().int().min(1).max(30),
+  "scrapecreators.poc_normalized_retention_days": z.number().int().min(1).max(365),
+  "scrapecreators.profile_cache_minutes": z.number().int().min(1).max(1440),
+  "scrapecreators.posts_cache_minutes": z.number().int().min(1).max(1440),
+  "scrapecreators.reels_cache_minutes": z.number().int().min(1).max(1440),
+  "scrapecreators.post_details_cache_minutes": z.number().int().min(1).max(1440),
 };
 
 export function parseSettingInput(key: string, valueType: string, raw: string) {

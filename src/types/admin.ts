@@ -19,6 +19,10 @@ export const adminPermissions = [
   "users.view",
   "users.manage",
   "audit.view",
+  "provider_poc.view",
+  "provider_poc.execute",
+  "provider_poc.export",
+  "provider_poc.delete",
 ] as const;
 export type AdminPermission = (typeof adminPermissions)[number];
 

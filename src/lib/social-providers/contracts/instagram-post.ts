@@ -1,0 +1,23 @@
+export type InstagramPost = {
+  providerPostId: string | null;
+  shortcode: string | null;
+  permalink: string | null;
+  mediaType: "image" | "video" | "carousel" | "unknown";
+  caption: string | null;
+  publishedAt: string | null;
+  likeCount: number | null;
+  commentCount: number | null;
+  viewCount: number | null;
+  playCount: number | null;
+  durationSeconds: number | null;
+  thumbnailUrl: string | null;
+  mediaUrl: string | null;
+  isPinned: boolean | null;
+  isCarousel: boolean | null;
+  carouselItemsCount: number | null;
+  hashtags: string[];
+  mentions: string[];
+  location: { name: string | null; id: string | null } | null;
+  audio: { id: string | null; title: string | null; artist: string | null } | null;
+  rawDataAvailable: boolean;
+};

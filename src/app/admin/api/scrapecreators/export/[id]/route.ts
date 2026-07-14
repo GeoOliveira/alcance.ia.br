@@ -1,0 +1,11 @@
+import { requireAdminSession } from "@/lib/admin/auth";
+import { writeAudit } from "@/lib/admin/audit";
+import { getPocRun } from "@/lib/social-providers/scrape-creators/execution";
+function csvCell(value: unknown) { return `"${String(value ?? "").replaceAll('"', '""')}"`; }
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  await requireAdminSession("provider_poc.export"); const { id } = await params; const run = await getPocRun(id); if (!run) return new Response("Não encontrado.", { status: 404 }); const type = new URL(request.url).searchParams.get("type") || "run";
+  await writeAudit({ action: "provider_poc_exported", entityType: "provider_test_run", entityId: id, metadata: { export_type: type } });
+  if (type === "inventory") { const inv = (run.field_inventory || {}) as Record<string, unknown>; const rows = [["classificacao", "campo"], ...(["found", "missing", "null", "unknown"] as const).flatMap((kind) => Array.isArray(inv[kind]) ? (inv[kind] as unknown[]).map((field) => [kind, String(field)]) : [])]; const csv = `\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\r\n")}`; return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="scrapecreators-${id}-inventario.csv"`, "cache-control": "private, no-store" } }); }
+  const payload = type === "normalized" ? run.normalized_result : { id: run.id, created_at: run.created_at, provider: run.provider, platform: run.platform, endpoint: run.endpoint, input_identifier: run.input_identifier, status: run.status, http_status: run.http_status, duration_ms: run.duration_ms, estimated_credit_cost: run.estimated_credit_cost, items_count: run.items_count, used_cache: run.used_cache, calls_count: run.calls_count, retries_count: run.retries_count, request_metadata: run.request_metadata, normalized_result: run.normalized_result, field_inventory: run.field_inventory, validation_issues: run.validation_issues, error_code: run.error_code, error_message: run.error_message };
+  return Response.json(payload, { headers: { "content-disposition": `attachment; filename="scrapecreators-${id}-${type}.json"`, "cache-control": "private, no-store" } });
+}

@@ -5,11 +5,13 @@ const permissions: Record<AdminRole, readonly AdminPermission[]> = {
     "dashboard.view", "analysis.view", "analysis.manage", "analysis.export", "analysis.delete",
     "contacts.view", "contacts.manage", "contacts.export", "contacts.delete", "content.manage", "faq.manage", "faq.delete",
     "settings.manage", "features.manage", "users.view", "users.manage", "audit.view",
+    "provider_poc.view", "provider_poc.execute", "provider_poc.export", "provider_poc.delete",
   ],
   admin: [
     "dashboard.view", "analysis.view", "analysis.manage", "analysis.export",
     "contacts.view", "contacts.manage", "contacts.export", "content.manage", "faq.manage", "faq.delete", "settings.manage",
     "users.view", "audit.view",
+    "provider_poc.view", "provider_poc.execute", "provider_poc.export",
   ],
   editor: ["dashboard.view", "content.manage", "faq.manage"],
   support: ["dashboard.view", "analysis.view", "analysis.manage", "contacts.view", "contacts.manage"],
