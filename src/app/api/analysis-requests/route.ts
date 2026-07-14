@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       p_utm_term: parsed.data.utm_term || null,
       p_referrer: parsed.data.referrer || null,
       p_landing_page: parsed.data.landingPage,
-      p_metadata: { phase: "initial_preview" },
+      p_metadata: { phase: "real_analysis", analysis_stage: "queued" },
       p_expires_at: new Date(Date.now() + retentionDays * 86_400_000).toISOString(),
       p_dedup_window_seconds: dedupWindow,
     });

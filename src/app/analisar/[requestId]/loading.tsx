@@ -1,0 +1,2 @@
+import { Container } from "@/components/ui/container";
+export default function Loading() { return <main className="analysis-page analysis-processing-page"><Container><div className="analysis-loading"><div className="analysis-loading-copy"><span className="eyebrow">CARREGANDO ANÁLISE</span><h1>Preparando seu resultado.</h1><p>Aguarde enquanto verificamos o estado atual.</p></div><div className="analysis-skeleton" aria-hidden="true"><div /><div className="analysis-skeleton-grid"><span /><span /><span /></div><div /><div /></div></div></Container></main>; }
