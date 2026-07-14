@@ -2,10 +2,17 @@ import { signupSchema } from "@/lib/validation/forms";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import { errorResponse, readJsonBody, SafeHttpError } from "@/lib/security/http";
 import { idempotencyKey, verifySubmission } from "@/lib/security/submission";
+import { getPublicSettings } from "@/lib/settings/get-settings";
+import { getPublicFlags } from "@/lib/settings/public-content";
+import { isPublicFormAvailable } from "@/lib/settings/availability";
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
   try {
+    const [settings, flags] = await Promise.all([getPublicSettings(), getPublicFlags()]);
+    if (!isPublicFormAvailable("signup", settings, flags)) {
+      throw new SafeHttpError(503, "signup_unavailable", "O cadastro ainda não está disponível.");
+    }
     const limit = await checkRateLimit(request, "signup");
     if (!limit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "Serviço temporariamente indisponível.");
     if (!limit.allowed) {

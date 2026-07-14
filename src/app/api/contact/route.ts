@@ -9,10 +9,17 @@ import {
   successResponse,
 } from "@/lib/security/http";
 import { idempotencyKey, verifySubmission } from "@/lib/security/submission";
+import { getPublicSettings } from "@/lib/settings/get-settings";
+import { getPublicFlags } from "@/lib/settings/public-content";
+import { isPublicFormAvailable } from "@/lib/settings/availability";
 
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID();
   try {
+    const [settings, flags] = await Promise.all([getPublicSettings(), getPublicFlags()]);
+    if (!isPublicFormAvailable("contact", settings, flags)) {
+      throw new SafeHttpError(503, "contact_unavailable", "O formulário está temporariamente indisponível.");
+    }
     const limit = await checkRateLimit(request, "contact");
     if (!limit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "Serviço temporariamente indisponível.");
     if (!limit.allowed) {

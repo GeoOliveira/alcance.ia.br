@@ -6,8 +6,8 @@ import { trackEvent } from "@/lib/analytics/events";
 import { TurnstileField } from "./turnstile-field";
 import { useFormProtection } from "./use-form-protection";
 
-export function ContactForm() {
-  const protection = useFormProtection("contact");
+export function ContactForm({ enabled = true }: { enabled?: boolean }) {
+  const protection = useFormProtection("contact", enabled);
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [started, setStarted] = useState(false);
@@ -15,6 +15,7 @@ export function ContactForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    if (!enabled) { setState("error"); setMessage("O formulário de contato está temporariamente indisponível."); return; }
     if (!protection.ready) {
       setState("error");
       setMessage(protection.protectionError || "Aguarde a proteção do formulário carregar.");
@@ -74,7 +75,7 @@ export function ContactForm() {
       <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <TurnstileField onToken={protection.setTurnstileToken} />
       {visibleError && <p className="form-error" role="alert">{visibleError}</p>}
-      <button className="button" disabled={state === "loading" || !protection.ready}>{state === "loading" ? "Enviando…" : "Enviar mensagem"}</button>
+      <button className="button" disabled={!enabled || state === "loading" || !protection.ready}>{state === "loading" ? "Enviando…" : enabled ? "Enviar mensagem" : "Indisponível"}</button>
     </form>
   );
 }

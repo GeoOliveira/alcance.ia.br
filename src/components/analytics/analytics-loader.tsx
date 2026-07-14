@@ -19,12 +19,12 @@ import {
 import { ANALYTICS_EVENT, trackEvent } from "@/lib/analytics/track";
 import type { AnalyticsPayload } from "@/lib/analytics/types";
 
-export function AnalyticsLoader() {
+export function AnalyticsLoader({ gaId: configuredGaId, clarityId: configuredClarityId }: { gaId?: string; clarityId?: string }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [allowed, setAllowed] = useState(false);
-  const gaId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim();
-  const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID?.trim();
+  const gaId = configuredGaId !== undefined ? configuredGaId.trim() : process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID?.trim();
+  const clarityId = configuredClarityId !== undefined ? configuredClarityId.trim() : process.env.NEXT_PUBLIC_CLARITY_ID?.trim();
 
   useEffect(() => {
     initializeAttribution();

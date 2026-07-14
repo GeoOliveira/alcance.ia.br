@@ -10,7 +10,13 @@ export async function createClient() {
   return createServerClient(url, key, {
     cookies: {
       getAll: () => store.getAll(),
-      setAll: (items) => items.forEach(({ name, value, options }) => store.set(name, value, options)),
+      setAll: (items) => {
+        try {
+          items.forEach(({ name, value, options }) => store.set(name, value, options));
+        } catch {
+          // Server Components cannot write cookies. The proxy refreshes sessions.
+        }
+      },
     },
   });
 }

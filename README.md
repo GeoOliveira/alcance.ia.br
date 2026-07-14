@@ -1,6 +1,6 @@
 # Alcance IA
 
-Primeira fase da plataforma brasileira **Alcance IA**: landing page institucional, captura segura de solicitações de análise do Instagram, fluxo demonstrativo de processamento e resultado, cadastro visual, contato, consentimento de cookies, páginas institucionais e jurídicas.
+Plataforma brasileira **Alcance IA**: landing page institucional, captura segura de solicitações de análise do Instagram, fluxo demonstrativo de processamento e resultado, contato, consentimento de cookies, páginas institucionais e jurídicas e primeira versão do painel administrativo seguro.
 
 > Esta versão não consulta o Instagram, não executa IA e não gera uma análise real. Telas de resultado são identificadas como demonstração.
 
@@ -19,7 +19,7 @@ Primeira fase da plataforma brasileira **Alcance IA**: landing page instituciona
 ```text
 src/
 ├── app/                 # páginas, metadata, SEO e rotas HTTP
-├── components/          # analytics, análise, cookies, forms, layout, legal, sections e UI
+├── components/          # admin, analytics, análise, cookies, forms, layout, legal, sections e UI
 ├── config/              # marca e dados institucionais configuráveis
 └── lib/                 # analytics, cookies, segurança, Supabase e validações
 supabase/migrations/     # esquema PostgreSQL e RLS
@@ -63,6 +63,7 @@ Copie `.env.example` para `.env.local`. Nunca envie `.env.local` ao Git.
 | `*_RATE_LIMIT_MAX` / `*_RATE_LIMIT_WINDOW_SECONDS` | Limites configuráveis por rota |
 | `ANALYSIS_DEDUP_WINDOW_SECONDS` | Janela de deduplicação por sessão e perfil |
 | `ANALYSIS_RETENTION_DAYS` | Prazo inicial das solicitações anônimas |
+| `ADMIN_EXPORT_MAX_ROWS` | Limite de linhas por CSV administrativo; entre 1 e 5000 |
 | `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | Google Analytics, condicionado ao consentimento |
 | `NEXT_PUBLIC_CLARITY_ID` | Microsoft Clarity opcional, condicionado ao consentimento e com formulários mascarados |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Preparação para Meta Pixel |
@@ -79,7 +80,7 @@ Variáveis vazias não ativam integrações. `SUPABASE_SERVICE_ROLE_KEY`, `RESEN
 
 1. Abra o projeto Supabase existente.
 2. Acesse o SQL Editor.
-3. Revise e aplique, em ordem, `202607130001_initial_capture.sql` e `202607140002_form_security.sql`, ou use `supabase db push` após vincular a CLI ao projeto correto.
+3. Revise e aplique, em ordem, `202607130001_initial_capture.sql`, `202607140002_form_security.sql` e `202607140003_admin_panel.sql`, ou use `supabase db push` após vincular a CLI ao projeto correto.
 4. Preencha URL, chave anon e chave `service_role` no ambiente local e na Vercel.
 5. Teste o formulário da Home e o formulário de contato.
 
@@ -111,6 +112,18 @@ GA4 é a arquitetura principal; GTM não é carregado em paralelo. Meta, Pintere
 ## Resend (opcional e futuro)
 
 O contato é sempre salvo primeiro no Supabase. Se `RESEND_API_KEY` e `CONTACT_EMAIL` estiverem preenchidos, a rota tenta enviar uma notificação. Antes de produção, verifique o domínio no Resend e substitua o remetente provisório `onboarding@resend.dev` por um endereço do domínio.
+
+## Painel administrativo
+
+O painel em `/admin` usa Supabase Auth, RLS e autorização repetida no servidor. Não existe cadastro público de administradores. Após aplicar a migration do painel, associe manualmente o primeiro usuário Auth a `super_admin` conforme [docs/criacao-primeiro-administrador.md](docs/criacao-primeiro-administrador.md).
+
+Documentação:
+
+- [arquitetura e operação do painel](docs/painel-administrativo.md);
+- [aplicação segura da migration](docs/aplicacao-migrations-painel.md);
+- [matriz de permissões](docs/matriz-de-permissoes.md).
+
+O painel controla somente uma lista fechada de configurações, flags e conteúdos. Segredos continuam exclusivamente nas variáveis de ambiente.
 
 ## Publicação na Vercel
 
@@ -145,7 +158,7 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 - nenhuma análise de perfil, conteúdo ou métricas;
 - nenhuma IA, geração de conteúdo ou automação;
 - cadastro apenas visual para registro de interesse, sem coleta de senha ou criação de conta;
-- sem pagamentos, planos, créditos ou painel;
+- sem pagamentos, planos, créditos ou painel do usuário final;
 - o banco remoto precisa receber as migrations versionadas antes de ativar os formulários em produção;
 - templates jurídicos exigem revisão profissional;
 - GA4 e Clarity dependem de configuração manual; pixels de marketing permanecem inativos.
@@ -154,7 +167,7 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 
 1. Revisar textos e documentos jurídicos com profissionais responsáveis.
 2. Ativar Supabase em ambientes Preview e Production e executar a migration.
-3. Implementar Supabase Auth e políticas RLS vinculadas ao usuário.
+3. Ativar MFA/AAL2 para administradores e validar os cinco papéis com usuários de teste.
 4. Definir uma fonte de dados autorizada e compatível com as políticas do Instagram.
 5. Implementar fila assíncrona e estados reais de análise.
 6. Configurar Turnstile e monitoramento operacional em produção.

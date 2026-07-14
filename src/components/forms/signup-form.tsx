@@ -6,8 +6,8 @@ import { trackEvent } from "@/lib/analytics/events";
 import { TurnstileField } from "./turnstile-field";
 import { useFormProtection } from "./use-form-protection";
 
-export function SignupForm() {
-  const protection = useFormProtection("signup");
+export function SignupForm({ enabled = false }: { enabled?: boolean }) {
+  const protection = useFormProtection("signup", enabled);
   const [state, setState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
   const [started, setStarted] = useState(false);
@@ -15,6 +15,11 @@ export function SignupForm() {
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage("");
+    if (!enabled) {
+      setState("error");
+      setMessage("O cadastro ainda não está disponível.");
+      return;
+    }
     if (!protection.ready) {
       setState("error");
       setMessage(protection.protectionError || "Aguarde a proteção do formulário carregar.");
@@ -66,7 +71,7 @@ export function SignupForm() {
       <input className="honeypot" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <TurnstileField onToken={protection.setTurnstileToken} />
       {visibleError && <p className="form-error" role="alert">{visibleError}</p>}
-      <button className="button" disabled={state === "loading" || !protection.ready}>{state === "loading" ? "Verificando…" : "Verificar disponibilidade"}</button>
+      <button className="button" disabled={!enabled || state === "loading" || !protection.ready}>{state === "loading" ? "Verificando…" : enabled ? "Verificar disponibilidade" : "Indisponível"}</button>
       <p className="form-caption">Nenhum dado é salvo nesta fase.</p>
     </form>
   );
