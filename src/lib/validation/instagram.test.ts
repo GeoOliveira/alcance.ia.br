@@ -1,0 +1,3 @@
+import { describe,expect,it } from "vitest";
+import { normalizeInstagramUsername } from "./instagram";
+describe("normalizeInstagramUsername",()=>{it.each([["@Usuario","usuario"],["usuario","usuario"],["instagram.com/Usuario","usuario"],["https://instagram.com/usuario?igsh=abc","usuario"],["https://www.instagram.com/usuario/","usuario"]])("normaliza %s",(input,expected)=>expect(normalizeInstagramUsername(input)).toBe(expected));it.each(["https://example.com/usuario","instagram.com/","nome/invalido","..usuario","usuario..teste","<script>"])("rejeita %s",(input)=>expect(()=>normalizeInstagramUsername(input)).toThrow())})

@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server";
+import { signupSchema } from "@/lib/validation/forms";
+import { checkRateLimit, requestFingerprint } from "@/lib/security/rate-limit";
+export async function POST(request:Request){const limit=checkRateLimit(`${requestFingerprint(request)}:signup`,4,10*60_000);if(!limit.allowed)return NextResponse.json({error:"Muitas tentativas. Aguarde e tente novamente."},{status:429});try{const parsed=signupSchema.safeParse(await request.json());if(!parsed.success)return NextResponse.json({error:parsed.error.issues[0]?.message||"Revise os campos."},{status:400});/* A senha é validada e descartada. Supabase Auth será integrado em fase futura. */return NextResponse.json({ok:true,note:"interest_only"},{status:202})}catch{return NextResponse.json({error:"Solicitação inválida."},{status:400})}}
