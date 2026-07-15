@@ -6,5 +6,11 @@ const blockedPatterns = [
 
 export function findUnsupportedClaims(value: unknown): string[] {
   const text = JSON.stringify(value);
-  return blockedPatterns.flatMap((pattern) => pattern.test(text) ? [pattern.source] : []);
+  return blockedPatterns.flatMap((pattern) => {
+    const match = pattern.exec(text);
+    if (!match) return [];
+    const before = text.slice(Math.max(0, match.index - 80), match.index);
+    const explicitlyNegated = /(?:\bn[aã]o\b|\bsem\b|\bnunca\b|\bjamais\b)[^.!?]{0,70}$/iu.test(before);
+    return explicitlyNegated ? [] : [pattern.source];
+  });
 }
