@@ -20,7 +20,31 @@ O ranking usa interações conhecidas (`curtidas + 2 × comentários`) e views a
 
 ## Estrutura visual e estados
 
-O relatório contém cabeçalho, resumo, visão geral, métricas, consistência, formatos, melhores publicações, observações iniciais, recursos futuros e CTA final. O layout é responsivo para 320–1440 px, usa CSS leve e `next/image` para mídias permitidas.
+O relatório contém cabeçalho compacto, resumo executivo, diagnóstico inicial, visão geral, métricas, consistência, formatos, melhores publicações, metodologia, recursos futuros e CTA final. O layout é responsivo para 320–1440 px, usa CSS leve e `next/image` para mídias permitidas.
+
+### Direção visual e hierarquia
+
+O refinamento visual usa superfícies claras, bordas discretas, sombras leves e verde da marca como cor funcional. O engajamento estimado é a métrica dominante; consistência, melhor formato e oportunidade aparecem como sinais de apoio. As demais seções alternam cartões, comparações e blocos editoriais para evitar que todo conteúdo tenha o mesmo peso.
+
+Os tokens exclusivos do relatório ficam centralizados em `src/app/analisar/analysis.css`: fundos, superfícies, textos, bordas, estados, raios, sombras e espaçamento vertical. Os componentes continuam desacoplados do fornecedor e recebem apenas o view model normalizado.
+
+### Componentes e visualizações
+
+- `AnalysisSectionNav`: navegação interna fixa no desktop e horizontal rolável no mobile;
+- `AnalysisHeroSummary`: métrica dominante, escala textual e oportunidades reais da amostra;
+- `AnalysisInsightsCard`: até três prioridades com impacto e próximo passo determinísticos;
+- `AnalysisMetricsGrid`: ícones SVG leves, contexto por métrica e variação visual de destaque;
+- `AnalysisConsistencyCard`: comparação acessível de 7 e 30 dias, sem inferir distribuição inexistente;
+- `AnalysisContentFormatBreakdown`: barra de composição e indicação textual do melhor formato;
+- `AnalysisTopPosts`: galeria responsiva com proporção estável, data e estado vazio;
+- `AnalysisMethodology`: acordeão nativo com fonte, amostra e limitações;
+- `AnalysisUpgradeCta`: prévia claramente marcada como “Em breve”, separada do valor real.
+
+### Responsividade, acessibilidade e performance
+
+No mobile, cabeçalho, resumo, prioridades e galeria são empilhados; a navegação não aumenta a largura da página; títulos e métricas usam escalas menores; áreas de ação mantêm tamanho confortável. Em 320 px, as grades de fatos e métricas passam a uma coluna quando necessário.
+
+Gráficos possuem alternativa textual ou `aria-label`, o menu e a metodologia usam elementos nativos `details/summary`, estados não dependem apenas de cor, foco global permanece visível e animações respeitam `prefers-reduced-motion`. Não foram adicionadas bibliotecas, fontes ou JavaScript de visualização; os ícones são SVG inline e as barras usam CSS.
 
 Estados suportados: aguardando, processando, concluído, parcial, poucos dados, não encontrado, privado, erro temporário e indisponível. Todas as páginas individuais usam `noindex`, `nofollow` e `nocache` e não entram no sitemap.
 
@@ -34,4 +58,4 @@ Eventos cobrem visualização, conclusão, erro, clique em post e CTA final, usa
 
 ## Limitações e próximos passos
 
-Contas privadas não podem ser analisadas; disponibilidade e campos dependem do Instagram; URLs de mídia podem expirar; a amostra inicial usa uma página de cada feed. Antes do deploy, aplicar manualmente a migration, validar um perfil de teste e observar consumo/créditos. Recomenda-se futuramente uma fila durável para recuperação automática de processamentos interrompidos e regras de atualização solicitada pelo usuário.
+Contas privadas não podem ser analisadas; disponibilidade e campos dependem do Instagram; URLs de mídia podem expirar; a amostra inicial usa uma página de cada feed. A comparação de consistência mostra apenas agregados reais de 7 e 30 dias, pois o view model ainda não expõe distribuição semanal. Recomenda-se futuramente uma fila durável, histórico real para tendências e atualização solicitada pelo usuário.
