@@ -113,11 +113,12 @@ export async function getContact(id: string) {
 
 export async function listAdminTable(table: "app_settings" | "feature_flags" | "site_content" | "site_faqs" | "admin_profiles" | "admin_audit_logs") {
   const supabase = await createClient();
+  const orderColumn = table === "admin_profiles" ? "created_at" : table === "site_content" ? "content_key" : "key";
   const query = table === "admin_audit_logs"
     ? supabase.from(table).select("id,created_at,admin_role,action,entity_type,entity_id,metadata").order("created_at", { ascending: false }).limit(100)
     : table === "site_faqs"
       ? supabase.from(table).select("*").order("position", { ascending: true }).limit(200)
-      : supabase.from(table).select("*").order(table === "admin_profiles" ? "created_at" : "key", { ascending: table !== "admin_profiles" }).limit(200);
+      : supabase.from(table).select("*").order(orderColumn, { ascending: table !== "admin_profiles" }).limit(200);
   const { data, error } = await query;
   if (error) throw new Error("Não foi possível consultar os dados administrativos.");
   return data || [];
