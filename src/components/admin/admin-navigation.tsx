@@ -6,7 +6,9 @@ import { useState } from "react";
 import type { AdminPermission, AdminRole } from "@/types/admin";
 import { hasPermission } from "@/lib/admin/permissions";
 
-const items: { href: string; label: string; permission: AdminPermission }[] = [
+type NavigationItem = { href: string; label: string; permission: AdminPermission };
+
+const primaryItems: NavigationItem[] = [
   { href: "/admin", label: "Visão geral", permission: "dashboard.view" },
   { href: "/admin/solicitacoes", label: "Solicitações", permission: "analysis.view" },
   { href: "/admin/contatos", label: "Contatos", permission: "contacts.view" },
@@ -16,8 +18,13 @@ const items: { href: string; label: string; permission: AdminPermission }[] = [
   { href: "/admin/funcionalidades", label: "Funcionalidades", permission: "features.manage" },
   { href: "/admin/recursos", label: "Recursos do produto", permission: "features.manage" },
   { href: "/admin/categorias", label: "Categorias", permission: "features.manage" },
-  { href: "/admin/integracoes/scrapecreators", label: "ScrapeCreators POC", permission: "provider_poc.view" },
+];
+const integrationItems: NavigationItem[] = [
+  { href: "/admin/integracoes/scrapecreators", label: "ScrapeCreators", permission: "provider_poc.view" },
   { href: "/admin/integracoes/openai", label: "OpenAI", permission: "ai_integration.view" },
+  { href: "/admin/integracoes/turnstile", label: "Turnstile", permission: "settings.manage" },
+];
+const secondaryItems: NavigationItem[] = [
   { href: "/admin/usuarios", label: "Usuários", permission: "users.view" },
   { href: "/admin/auditoria", label: "Auditoria", permission: "audit.view" },
   { href: "/admin/perfil", label: "Meu perfil", permission: "dashboard.view" },
@@ -25,10 +32,17 @@ const items: { href: string; label: string; permission: AdminPermission }[] = [
 
 function NavigationLinks({ role, onNavigate }: { role: AdminRole; onNavigate?: () => void }) {
   const pathname = usePathname();
-  return <nav aria-label="Administração">{items.filter((item) => hasPermission(role, item.permission)).map((item) => {
+  const links = (items: NavigationItem[]) => items.filter((item) => hasPermission(role, item.permission)).map((item) => {
     const active = item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
     return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>;
-  })}</nav>;
+  });
+  const integrations = integrationItems.filter((item) => hasPermission(role, item.permission));
+  const integrationActive = pathname.startsWith("/admin/integracoes");
+  return <nav aria-label="Administração">
+    {links(primaryItems)}
+    {integrations.length > 0 && <div className="admin-nav-group"><Link className="admin-nav-parent" href="/admin/integracoes" aria-current={pathname === "/admin/integracoes" ? "page" : undefined} data-active={integrationActive} onClick={onNavigate}><span>Integrações</span><i aria-hidden="true">⌄</i></Link><div className="admin-nav-children">{integrations.map((item) => <Link key={item.href} href={item.href} aria-current={pathname.startsWith(item.href) ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>)}</div></div>}
+    {links(secondaryItems)}
+  </nav>;
 }
 
 export function AdminSidebar({ role }: { role: AdminRole }) {
