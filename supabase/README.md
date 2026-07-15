@@ -12,6 +12,7 @@ O diretório contém a representação versionada do banco. O estado remoto não
 6. `202607150006_advanced_analysis_metrics.sql`: métricas avançadas versionadas.
 7. `202607150007_engagement_metric_audit.sql`: fórmula auditada `engagement-v2` e histórico.
 8. `202607150008_openai_profile_analysis.sql`: execuções estruturadas da OpenAI, settings/flags desligados, índices e RLS.
+9. `202607150009_public_analysis_flow.sql`: ativa os módulos determinísticos públicos e prepara as subseções de IA sem ligar seu controle mestre.
 
 Com a Supabase CLI instalada e autenticada:
 

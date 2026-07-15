@@ -2,13 +2,13 @@ import type { InstagramPost } from "@/lib/social-providers/contracts/instagram-p
 import type { InstagramProfile } from "@/lib/social-providers/contracts/instagram-profile";
 import { selectTopPosts } from "./analysis-metrics";
 import { stageFromMetadata, stateFromRecord } from "./analysis-status";
-import type { AnalysisMetrics, AnalysisObservation, AnalysisViewModel } from "./types";
+import type { AIAnalysisPublicState, AnalysisMetrics, AnalysisObservation, AnalysisViewModel } from "./types";
 import { persistedAdvancedMetricsSchema, type AdvancedAnalysisMetrics } from "./metrics";
 import { engagementConfidence, type EngagementExclusionReason } from "./engagement";
 import { profileAnalysisOutputSchema } from "@/lib/ai/schemas/profile-analysis-schema";
 
 type RequestRow = { id: string; instagram_username: string; instagram_profile_url: string; status: string; created_at: string; metadata: Record<string, unknown> | null };
-type ResultRow = { data_quality: string; profile_data: unknown; posts_data: unknown; metrics: unknown; observations: unknown; fetched_at: string; source_metadata: Record<string, unknown> | null; calculated_metrics?: unknown; engagement_formula_version?: string | null; engagement_calculated_at?: string | null; ai_output?: unknown; ai_visibility?: "hidden" | "preview" | "full" };
+type ResultRow = { data_quality: string; profile_data: unknown; posts_data: unknown; metrics: unknown; observations: unknown; fetched_at: string; source_metadata: Record<string, unknown> | null; calculated_metrics?: unknown; engagement_formula_version?: string | null; engagement_calculated_at?: string | null; ai_output?: unknown; ai_visibility?: "hidden" | "preview" | "full"; ai_state?: AIAnalysisPublicState };
 const emptyExclusions: Record<EngagementExclusionReason, number> = { missing_date: 0, outside_time_window: 0, over_post_limit: 0, missing_likes: 0, missing_comments: 0 };
 function numberOrNull(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? value : null; }
 function normalizeMetrics(value: unknown, result: ResultRow | null): AnalysisMetrics | null {
@@ -35,6 +35,6 @@ export function buildAnalysisViewModel(request: RequestRow, result: ResultRow | 
   return { requestId: request.id, state, stage: stageFromMetadata(metadata), username: request.instagram_username, profileUrl: request.instagram_profile_url, requestedAt: request.created_at,
     analyzedAt: result?.fetched_at ?? null, profile, posts, metrics: normalizeMetrics(result?.metrics, result),
     observations: Array.isArray(result?.observations) ? result.observations as AnalysisObservation[] : [], topPosts: selectTopPosts(posts),
-    isCached: result?.source_metadata?.used_cache === true, statusMessage: messages[state] || messages.temporary_error!, advancedMetrics: advanced.success ? advanced.data as unknown as AdvancedAnalysisMetrics : undefined,
+    isCached: result?.source_metadata?.used_cache === true, statusMessage: messages[state] || messages.temporary_error!, advancedMetrics: advanced.success ? advanced.data as unknown as AdvancedAnalysisMetrics : undefined, aiAnalysisState: result?.ai_state,
     aiAnalysis: ai.success && result?.ai_visibility !== "hidden" ? ai.data : undefined, aiAnalysisVisibility: ai.success && result?.ai_visibility !== "hidden" ? result?.ai_visibility : undefined };
 }

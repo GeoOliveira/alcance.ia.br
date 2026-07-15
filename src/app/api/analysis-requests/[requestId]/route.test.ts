@@ -23,11 +23,11 @@ describe("individual analysis API", () => {
   });
 
   it("returns only safe status for the owning session", async () => {
-    mocks.status.mockResolvedValue({ state: "processing", stage: "content" });
+    mocks.status.mockResolvedValue({ state: "completed", stage: "complete", aiState: "processing" });
     const response = await GET(request(), context);
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({ state: "processing", stage: "content" });
+    await expect(response.json()).resolves.toEqual({ state: "completed", stage: "complete", aiState: "processing" });
     expect(mocks.status).toHaveBeenCalledWith(id, session);
   });
 
