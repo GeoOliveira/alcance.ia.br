@@ -3,12 +3,13 @@ import { AdminPageHeader } from "@/components/admin/admin-ui";
 import { updateFeatureFlagAction } from "@/app/admin/actions/operations";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { getProductResourcesAdminData } from "@/lib/admin/data";
-import { deleteContentCategoryAction, saveContentCategoryAction, updateDashboardModuleAction, updateProductFeatureAction } from "./actions";
+import { deleteContentCategoryAction, runHashtagDiscoveryAction, saveContentCategoryAction, updateDashboardModuleAction, updateProductFeatureAction } from "./actions";
 
 type FeatureRow = { key: string; name: string; description: string; feature_group: string; audience: string; status: string; visibility: string; enabled: boolean; requires_provider_call: boolean; provider: string; dependencies: string[]; estimated_credit_cost: number; limits: Record<string, number>; metadata: Record<string, unknown>; updated_at: string; updated_by: string | null };
 type CategoryRow = { id: string; slug: string; name: string; description: string; keywords: string[]; seed_hashtags: string[]; excluded_terms: string[]; language: string; country: string; enabled: boolean; visible: boolean; refresh_minutes: number; position: number };
 type DashboardModuleRow = { key: string; title: string; description: string; icon: string; chart_type: string; enabled: boolean; visible: boolean; access_level: string; status: string; display_order: number; requires_ai: boolean; requires_authentication: boolean; requires_premium: boolean; configuration: { minimumData?: number; dependencies?: string[] }; updated_at: string; updated_by: string | null };
 type DashboardFlagRow = { id: string; key: string; name: string; enabled: boolean };
+type HashtagRunRow = { id: string; status: string; items_count: number; provider_calls: number; period: string | null; error_code: string | null; created_at: string; completed_at: string | null; content_categories: { name: string } | { name: string }[] | null };
 
 const groupLabels: Record<string, string> = { profile: "Análise de perfil", category: "Descoberta por categoria", trending: "Tendências", audio: "Áudios" };
 const statusLabels: Record<string, string> = { disabled: "Desativado", development: "Desenvolvimento", beta: "Beta", active: "Produção" };
@@ -84,6 +85,8 @@ export default async function ProductResourcesPage({ searchParams }: { searchPar
   const categories = data.categories as CategoryRow[];
   const dashboardModules = data.dashboardModules as DashboardModuleRow[];
   const dashboardFlags = data.dashboardFlags as DashboardFlagRow[];
+  const hashtagRuns = data.hashtagRuns as HashtagRunRow[];
+  const hashtagFeature = allFeatures.find((feature) => feature.key === "category_hashtag_discovery");
   const resourceFlags = dashboardFlags.filter((flag) => flag.key === "resource_reels_by_category");
   const executiveFlags = dashboardFlags.filter((flag) => flag.key.startsWith("dashboard_"));
   const features = allFeatures.filter((feature) => (!filters.status || feature.status === filters.status) && (!filters.audience || feature.audience === filters.audience) && (!filters.enabled || String(feature.enabled) === filters.enabled));
@@ -99,6 +102,17 @@ export default async function ProductResourcesPage({ searchParams }: { searchPar
     <section className="admin-panel admin-resource-panel">
       <div className="admin-panel-header"><div><h2>Reels por categoria</h2><p>Feature flag pública e atalho para a administração das categorias.</p></div><a className="admin-secondary-button" href="/admin/categorias">Administrar categorias</a></div>
       <div className="admin-dashboard-flags">{resourceFlags.map((flag) => <AdminActionForm action={updateFeatureFlagAction} className="admin-dashboard-flag" submitLabel="Aplicar" key={flag.key}><input type="hidden" name="id" value={flag.id} /><span>{flag.name}<small>{flag.key}</small></span><select name="enabled" defaultValue={String(flag.enabled)}><option value="true">Ativa</option><option value="false">Inativa</option></select></AdminActionForm>)}</div>
+    </section>
+    <section className="admin-panel admin-resource-panel admin-hashtag-collector">
+      <div className="admin-panel-header"><div><h2>Atualização das hashtags públicas</h2><p>Consulta amostras públicas por categoria e publica somente resultados agregados no cache.</p></div><a className="admin-secondary-button" href="/recursos/hashtags">Abrir página pública</a></div>
+      <div className="admin-hashtag-layout">
+        <AdminActionForm action={runHashtagDiscoveryAction} className="admin-form admin-resource-form" submitLabel="Atualizar hashtags" pendingLabel="Coletando hashtags…">
+          <div className="admin-hashtag-callout"><strong>Consumo controlado</strong><span>Limite configurado: {hashtagFeature?.limits.dailyRequests ?? 0} chamadas/dia · custo estimado: {hashtagFeature?.estimated_credit_cost ?? 0} crédito por chamada.</span></div>
+          <fieldset><legend>Escopo desta atualização</legend><div><label>Categorias<input name="categoryLimit" type="number" min={1} max={10} defaultValue={5} /></label><label>Sementes por categoria<select name="seedsPerCategory" defaultValue="2"><option value="1">1 semente</option><option value="2">2 sementes</option><option value="3">3 sementes</option></select></label><label>Período do provedor<select name="period" defaultValue="last-month"><option value="last-week">Última semana</option><option value="last-month">Último mês</option><option value="last-year">Último ano</option></select></label></div></fieldset>
+          <label className="admin-critical-confirm">Confirmação<input name="confirmation" placeholder="Digite COLETAR HASHTAGS" autoComplete="off" /><small>A página pública nunca dispara esta consulta. A ação respeita o limite diário configurado e substitui a leitura somente após salvar um novo snapshot.</small></label>
+        </AdminActionForm>
+        <div className="admin-hashtag-history"><h3>Execuções recentes</h3>{hashtagRuns.length ? <div>{hashtagRuns.map((run) => { const relation = Array.isArray(run.content_categories) ? run.content_categories[0] : run.content_categories; return <article key={run.id}><span className={`admin-status admin-status-${run.status}`}>{run.status}</span><div><strong>{relation?.name ?? "Categoria removida"}</strong><small>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(run.created_at))} · {run.period ?? "sem período"}</small></div><b>{run.items_count} itens<small>{run.provider_calls} chamada(s){run.error_code ? ` · ${run.error_code}` : ""}</small></b></article>; })}</div> : <div className="admin-empty"><strong>Nenhuma execução registrada</strong><p>Inicie uma atualização para formar o primeiro snapshot.</p></div>}</div>
+      </div>
     </section>
     <section className="admin-panel admin-resource-panel">
       <div className="admin-panel-header"><div><h2>Catálogo de recursos</h2><p>{features.length} de {allFeatures.length} recursos exibidos</p></div></div>

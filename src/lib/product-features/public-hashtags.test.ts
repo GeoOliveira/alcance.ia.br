@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { decideHashtagResourceAccess, filterPublicHashtags, normalizeHashtagSnapshot, type HashtagResourceConfig, type PublicHashtagItem } from "./public-hashtags";
+import { decideHashtagResourceAccess, filterPublicHashtags, getMostRecurringHashtags, normalizeHashtagSnapshot, type HashtagResourceConfig, type PublicHashtagItem } from "./public-hashtags";
 
 const category = { id: "category-1", slug: "marketing", name: "Marketing" };
 const config: HashtagResourceConfig = { enabled: true, flagEnabled: true, audience: "public", status: "active", visibility: "full", maxItems: 60, cacheMinutes: 360, automaticRefresh: false, indexable: true };
@@ -36,6 +36,12 @@ describe("filterPublicHashtags", () => {
   it("exclui snapshots fora do período e respeita o limite administrativo", () => {
     expect(filterPublicHashtags(items, { period: "30" }, 1, new Date("2026-07-15T12:00:00.000Z"))).toHaveLength(1);
     expect(filterPublicHashtags(items, { period: "30" }, 20, new Date("2026-07-15T12:00:00.000Z")).some((item) => item.id === "2")).toBe(false);
+  });
+
+  it("agrupa o ranking recorrente sem repetir a mesma hashtag", () => {
+    const recurring = getMostRecurringHashtags([...items, { ...items[0], id: "4", category: "Negócios", categorySlug: "negocios", occurrences: 100 }], 2);
+    expect(recurring[0]).toMatchObject({ hashtag: "gastronomia", occurrences: 800 });
+    expect(recurring.find((item) => item.hashtag === "marketing")).toMatchObject({ occurrences: 400, categories: ["Marketing", "Negócios"] });
   });
 });
 
