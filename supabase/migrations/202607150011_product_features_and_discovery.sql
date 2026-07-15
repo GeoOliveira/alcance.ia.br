@@ -64,6 +64,7 @@ create table if not exists public.category_discovery_runs (
   cache_hit boolean not null default false,
   duration_ms integer check (duration_ms is null or duration_ms >= 0),
   error_code text check (error_code is null or char_length(error_code) <= 80),
+  created_at timestamptz not null default now(),
   started_at timestamptz not null default now(),
   completed_at timestamptz,
   expires_at timestamptz,
