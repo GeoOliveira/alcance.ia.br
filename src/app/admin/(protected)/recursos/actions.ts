@@ -6,6 +6,7 @@ import { authorizeAdminAction } from "@/lib/admin/auth";
 import { writeAudit } from "@/lib/admin/audit";
 import { createClient } from "@/lib/supabase/server";
 import { productFeatureKeys } from "@/lib/product-features/catalog";
+import { dashboardModuleKeys } from "@/lib/analysis/dashboard/catalog";
 import type { ActionState } from "@/types/admin";
 
 const featureSchema = z.object({
@@ -21,7 +22,33 @@ const featureSchema = z.object({
   dependencies: z.string().max(1000),
 });
 const categorySchema = z.object({ id: z.string().uuid().or(z.literal("")), slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80), name: z.string().trim().min(2).max(80), description: z.string().trim().max(500), keywords: z.string().max(500), seedHashtags: z.string().max(500), excludedTerms: z.string().max(500), language: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/), country: z.string().regex(/^[A-Z]{2}$/), refreshMinutes: z.coerce.number().int().min(60).max(10080), position: z.coerce.number().int().min(0).max(10000), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]) });
+const dashboardModuleSchema = z.object({ key: z.enum(dashboardModuleKeys), title: z.string().trim().min(3).max(120), description: z.string().trim().max(500), icon: z.string().trim().min(2).max(40), displayOrder: z.coerce.number().int().min(0).max(10000), minimumData: z.coerce.number().int().min(1).max(100), accessLevel: z.enum(["public", "free", "premium", "admin"]), status: z.enum(["development", "beta", "active", "disabled"]), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]), requiresAI: z.enum(["true", "false"]), requiresAuthentication: z.enum(["true", "false"]), requiresPremium: z.enum(["true", "false"]), dependencies: z.string().max(1000) });
 const fail = (message: string): ActionState => ({ ok: false, message });
+
+export async function updateDashboardModuleAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  let session;
+  try { session = await authorizeAdminAction("features.manage"); } catch { return fail("Esta ação exige permissão de superadministrador."); }
+  const parsed = dashboardModuleSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Revise os dados e os requisitos do módulo.");
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("dashboard_modules").select("key,title,description,icon,enabled,visible,access_level,status,display_order,requires_ai,requires_authentication,requires_premium,configuration").eq("key", parsed.data.key).maybeSingle();
+  if (!current) return fail("Módulo do dashboard não encontrado.");
+  const dependencies = [...new Set(parsed.data.dependencies.split(",").map((item) => item.trim()).filter(Boolean))].slice(0, 20);
+  const enabled = parsed.data.enabled === "true";
+  const visible = parsed.data.visible === "true";
+  const requiresAI = parsed.data.requiresAI === "true";
+  const requiresAuthentication = parsed.data.requiresAuthentication === "true";
+  const requiresPremium = parsed.data.requiresPremium === "true";
+  const currentConfiguration = current.configuration && typeof current.configuration === "object" ? current.configuration as Record<string, unknown> : {};
+  const critical = (enabled && !current.enabled) || (visible && !current.visible) || (parsed.data.status === "beta" && current.status !== "beta") || (parsed.data.accessLevel === "premium" && current.access_level !== "premium") || (requiresAI && !current.requires_ai) || (requiresPremium && !current.requires_premium) || parsed.data.minimumData > Number(currentConfiguration.minimumData ?? 1) || dependencies.join("|") !== (Array.isArray(currentConfiguration.dependencies) ? currentConfiguration.dependencies.join("|") : "");
+  if (critical && formData.get("confirmation") !== "ATIVAR") return fail("Digite ATIVAR para confirmar esta mudança de disponibilidade ou requisito.");
+  const next = { title: parsed.data.title, description: parsed.data.description, icon: parsed.data.icon, display_order: parsed.data.displayOrder, access_level: parsed.data.accessLevel, status: parsed.data.status, enabled, visible, requires_ai: requiresAI, requires_authentication: requiresAuthentication, requires_premium: requiresPremium, configuration: { ...currentConfiguration, minimumData: parsed.data.minimumData, dependencies }, updated_by: session.userId };
+  const { error } = await supabase.from("dashboard_modules").update(next).eq("key", current.key);
+  if (error) return fail("Não foi possível atualizar o módulo do dashboard.");
+  await writeAudit({ action: "dashboard_module_updated", entityType: "dashboard_module", entityId: current.key, before: current, after: next });
+  revalidatePath("/admin/recursos"); revalidatePath("/analisar/[requestId]", "page");
+  return { ok: true, message: "Módulo atualizado e registrado na auditoria." };
+}
 
 export async function updateProductFeatureAction(_: ActionState, formData: FormData): Promise<ActionState> {
   let session;

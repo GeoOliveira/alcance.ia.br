@@ -98,7 +98,7 @@ export async function updateFeatureFlagAction(_: ActionState, formData: FormData
   const { error } = await supabase.from("feature_flags").update({ enabled, updated_by: session.userId }).eq("id", parsed.data.id);
   if (error) return invalid("Não foi possível alterar a funcionalidade.");
   await writeAudit({ action: "feature_flag_updated", entityType: "feature_flag", entityId: current.key, before: { enabled: current.enabled }, after: { enabled } });
-  revalidateTag("public-flags", "max"); revalidatePath("/"); revalidatePath("/admin/funcionalidades");
+  revalidateTag("public-flags", "max"); revalidatePath("/"); revalidatePath("/admin/funcionalidades"); revalidatePath("/admin/recursos"); revalidatePath("/analisar/[requestId]", "page");
   return success("Funcionalidade atualizada.");
 }
 

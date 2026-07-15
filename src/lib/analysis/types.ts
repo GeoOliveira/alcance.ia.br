@@ -4,6 +4,7 @@ import type { AdvancedAnalysisMetrics } from "./metrics";
 import type { EngagementConfidence, EngagementExclusionReason } from "./engagement";
 import type { AIProfileAnalysisOutput } from "@/lib/ai/contracts/ai-analysis-output";
 import type { ProfileProductInsights } from "@/lib/product-features/profile-insights";
+import type { DashboardModuleRecord } from "./dashboard/access";
 
 export type AnalysisState = "waiting" | "processing" | "completed" | "partial" | "not_found" | "private" | "insufficient_data" | "temporary_error" | "unavailable" | "demo";
 export type AnalysisStage = "queued" | "profile" | "content" | "metrics" | "complete";
@@ -30,4 +31,5 @@ export type AnalysisViewModel = {
   aiAnalysis?: AIProfileAnalysisOutput;
   aiAnalysisVisibility?: "preview" | "full";
   productInsights?: ProfileProductInsights;
+  dashboardModules?: DashboardModuleRecord[];
 };

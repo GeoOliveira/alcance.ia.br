@@ -1,6 +1,7 @@
 type OptionalSection = "ai" | "completeness" | "trend" | "structure" | "plan";
 
 const sections: Array<{ id: string; label: string; requires?: OptionalSection }> = [
+  { id: "dashboard-executivo", label: "Painel" },
   { id: "resumo", label: "Resumo" },
   { id: "prioridades", label: "Diagnóstico" },
   { id: "insights-inteligentes", label: "Insights", requires: "ai" },
