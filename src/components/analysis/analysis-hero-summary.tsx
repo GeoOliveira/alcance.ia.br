@@ -12,9 +12,9 @@ export function AnalysisHeroSummary({ analysis }: { analysis: AnalysisViewModel 
   return <section className="analysis-summary" id="resumo">
     <div className="analysis-summary-main">
       <span className="eyebrow">RESUMO EXECUTIVO</span>
-      <div className="analysis-primary-metric"><span>Engajamento estimado</span><strong>{formatPercentage(metrics.estimatedEngagementRate)}</strong></div>
+      <div className="analysis-primary-metric"><span>Engajamento médio estimado</span><strong>{formatPercentage(metrics.estimatedEngagementRate)}</strong></div>
       <div className="analysis-status-scale" aria-label={`Classificação de engajamento: ${metrics.engagementLabel}`}><div aria-hidden="true">{engagementLevels.map((level, index) => <i className={index <= activeLevel ? "active" : ""} key={level} />)}</div><span>{metrics.engagementLabel}</span></div>
-      <p>{analysis.statusMessage} A leitura usa regras transparentes e dados públicos disponíveis.</p>
+      <p>{analysis.statusMessage} A taxa usa {metrics.validEngagementPosts} publicações válidas e tem confiança {metrics.engagementConfidence === "high" ? "alta" : metrics.engagementConfidence === "medium" ? "média" : metrics.engagementConfidence === "low" ? "baixa" : "insuficiente"}.</p>
     </div>
     <div className="analysis-summary-support">
       <article><span className="analysis-summary-icon"><AnalysisIcon name="calendar" /></span><div><small>Consistência</small><strong>{metrics.consistencyLabel}</strong><p>{metrics.postsLast30Days} posts nos últimos 30 dias</p></div></article>

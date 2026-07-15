@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const mocks = vi.hoisted(() => ({ status: vi.fn(), process: vi.fn() }));
+const mocks = vi.hoisted(() => ({ status: vi.fn(), process: vi.fn(), after: vi.fn(), generateAI: vi.fn() }));
+vi.mock("next/server", async (importOriginal) => ({ ...await importOriginal<typeof import("next/server")>(), after: mocks.after }));
 vi.mock("@/lib/analysis/get-analysis-by-id", () => ({ getSafeAnalysisStatus: mocks.status }));
 vi.mock("@/lib/analysis/process-analysis", () => ({ processAnalysis: mocks.process }));
+vi.mock("@/lib/ai", () => ({ generateAIAnalysisForRequest: mocks.generateAI }));
 import { GET, POST } from "./route";
 
 const id = "0190f4a0-c6a8-7b44-9b54-e263c162c4b1";
@@ -40,6 +42,7 @@ describe("individual analysis API", () => {
 
     expect(response.status).toBe(200);
     expect(mocks.process).toHaveBeenCalledWith(id, session);
+    expect(mocks.after).toHaveBeenCalledOnce();
   });
 
   it("does not expose processing errors", async () => {

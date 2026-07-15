@@ -42,4 +42,8 @@ describe("analytics tracking", () => {
     expect(trackEvent("page_view", { page_path: "/" })).toBe(false);
     expect(dispatchEvent).toHaveBeenCalledOnce();
   });
+
+  it("allows aggregate analysis context while stripping content", () => {
+    expect(sanitizeProperties({ request_id: "request", section_id: "recent_trend", bio: "private", caption: "private", hashtags: "private" })).toEqual({ request_id: "request", section_id: "recent_trend" });
+  });
 });

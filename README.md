@@ -1,8 +1,8 @@
 # Alcance IA
 
-Plataforma brasileira **Alcance IA**: landing page institucional, captura segura de solicitações de análise do Instagram, fluxo demonstrativo de processamento e resultado, contato, consentimento de cookies, páginas institucionais e jurídicas e primeira versão do painel administrativo seguro.
+Plataforma brasileira **Alcance IA**: landing page, captura segura, análise determinística de dados públicos do Instagram via ScrapeCreators, resultado individual, contato, consentimento e painel administrativo seguro.
 
-> Esta versão não consulta o Instagram, não executa IA e não gera uma análise real. Telas de resultado são identificadas como demonstração.
+> A análise oficial usa dados públicos e regras transparentes. Uma camada opcional de IA apenas interpreta métricas já calculadas; começa desligada e não substitui o Instagram Insights.
 
 ## Tecnologias
 
@@ -73,6 +73,10 @@ Copie `.env.example` para `.env.local`. Nunca envie `.env.local` ao Git.
 | `CONTACT_EMAIL` | Destino de contato e informação institucional |
 | `TURNSTILE_SECRET_KEY` | Preparação para validação do Turnstile no servidor |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Preparação para widget do Turnstile |
+| `OPENAI_API_KEY` | Chave privada da OpenAI, somente no servidor |
+| `OPENAI_MODEL` | Modelo configurável usado pela Responses API |
+| `OPENAI_TIMEOUT_MS` / `OPENAI_MAX_OUTPUT_TOKENS` | Limites de tempo e saída |
+| `OPENAI_AI_ANALYSIS_ENABLED` | Controle de ambiente; começa `false` |
 
 Variáveis vazias não ativam integrações. `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` e `TURNSTILE_SECRET_KEY` nunca podem ser prefixadas com `NEXT_PUBLIC_`.
 
@@ -80,7 +84,7 @@ Variáveis vazias não ativam integrações. `SUPABASE_SERVICE_ROLE_KEY`, `RESEN
 
 1. Abra o projeto Supabase existente.
 2. Acesse o SQL Editor.
-3. Revise e aplique, em ordem, `202607130001_initial_capture.sql`, `202607140002_form_security.sql` e `202607140003_admin_panel.sql`, ou use `supabase db push` após vincular a CLI ao projeto correto.
+3. Revise e aplique as migrations de `supabase/migrations` em ordem. A migration `202607150006_advanced_analysis_metrics.sql` permanece local até autorização explícita e cria campos versionados, settings e flags avançadas desligadas.
 4. Preencha URL, chave anon e chave `service_role` no ambiente local e na Vercel.
 5. Teste o formulário da Home e o formulário de contato.
 
@@ -154,9 +158,10 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 
 ## Limitações atuais
 
-- nenhuma consulta ou integração com Instagram;
-- nenhuma análise de perfil, conteúdo ou métricas;
-- nenhuma IA, geração de conteúdo ou automação;
+- a fonte depende da disponibilidade pública e dos limites da ScrapeCreators;
+- a amostra coletada não representa necessariamente todo o histórico da conta;
+- a IA assistiva começa desligada; não analisa comentários, imagem, áudio, concorrentes nem recalcula métricas;
+- destaques ainda não são coletados e não causam chamadas adicionais;
 - cadastro apenas visual para registro de interesse, sem coleta de senha ou criação de conta;
 - sem pagamentos, planos, créditos ou painel do usuário final;
 - o banco remoto precisa receber as migrations versionadas antes de ativar os formulários em produção;
@@ -173,3 +178,11 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 6. Configurar Turnstile e monitoramento operacional em produção.
 7. Verificar domínio de e-mail no Resend.
 8. Configurar GA4, habilitar os painéis da Vercel e validar eventos com consentimento em produção.
+
+## Análise determinística avançada
+
+A versão `v2.0.0` centraliza métricas puras em `src/lib/analysis/metrics`, persiste JSONB versionado e permite recálculo administrativo sem API. Todas as novas flags começam desligadas e falhas de configuração usam fallback fechado. Consulte [métricas e fórmulas](docs/metricas-avancadas-deterministicas.md), [regras do plano](docs/regras-do-plano-de-acao.md), [dicionário](docs/dicionario-de-metricas.md), [processamento](docs/processamento-da-analise.md) e [settings/flags](docs/configuracoes-e-feature-flags-analise.md).
+
+## Interpretação assistida pela OpenAI
+
+A integração server-only usa Responses API, Structured Outputs, prompt/schema versionados, pacote sanitizado, cache, consumo e verificações de consistência. Ela permanece desativada por padrão e aceita somente a fórmula de engajamento `engagement-v2`, formalmente auditada. Consulte [docs/integracao-openai.md](docs/integracao-openai.md).

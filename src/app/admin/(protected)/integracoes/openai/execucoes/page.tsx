@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { requireAdminSession } from "@/lib/admin/auth";
+import { listOpenAIExecutions } from "@/lib/ai/admin-data";
+import { AdminPageHeader, AdminStatusBadge } from "@/components/admin/admin-ui";
+
+export default async function OpenAIExecutionsPage() { await requireAdminSession("ai_integration.view"); const rows = await listOpenAIExecutions(); return <><AdminPageHeader eyebrow="OPENAI" title="Execuções" description="Histórico técnico sanitizado das interpretações." action={<Link className="admin-button admin-button-secondary" href="/admin/integracoes/openai">Voltar</Link>} /><section className="admin-panel">{rows.length ? <table className="admin-table"><thead><tr><th>Data</th><th>Status</th><th>Modelo</th><th>Tokens</th><th>Duração</th><th></th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td>{new Date(row.created_at).toLocaleString("pt-BR")}</td><td><AdminStatusBadge status={row.status} /></td><td>{row.model}</td><td>{row.total_tokens}</td><td>{row.duration_ms === null ? "—" : `${row.duration_ms} ms`}</td><td><Link href={`/admin/integracoes/openai/execucoes/${row.id}`}>Detalhes</Link></td></tr>)}</tbody></table> : <p className="admin-muted">Nenhuma execução registrada.</p>}</section></>; }

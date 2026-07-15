@@ -17,6 +17,11 @@ export const analyticsEvents = [
   "analysis_error_viewed",
   "analysis_refresh_clicked",
   "analysis_post_clicked",
+  "analysis_top_post_clicked",
+  "analysis_section_viewed",
+  "analysis_action_plan_viewed",
+  "analysis_methodology_opened",
+  "analysis_recalculate_requested",
   "analysis_final_cta_clicked",
   "signup_cta_clicked",
   "signup_started",
@@ -53,6 +58,7 @@ type CommonProperties = AttributionProperties & {
   request_id?: string;
   consent_category?: "analytics" | "functional" | "marketing";
   navigation_target?: string;
+  section_id?: string;
   analytics_enabled?: boolean;
   marketing_enabled?: boolean;
 };
