@@ -28,7 +28,7 @@ describe("executive dashboard", () => {
     expect(data.profileHealth).toHaveLength(6);
     expect(data.recentPosts.map((item) => item.engagement)).toEqual([11, 17]);
     expect(data.formatDistribution).toEqual([{ name: "Reels", value: 1 }, { name: "Fotos", value: 1 }]);
-    expect(data.topReels[0]?.views).toBe(1000);
+    expect(data.topReels[0]).toMatchObject({ views: 1000, url: null });
     expect(data.topHashtags[0]?.name).toBe("#marketing");
     expect(data.formatComparison[0]).toMatchObject({ format: "Reels", likes: 100, comments: 10, views: 1000 });
   });
@@ -52,4 +52,3 @@ describe("executive dashboard", () => {
     expect(migration).toContain("dashboard_modules_super_admin_update");
   });
 });
-

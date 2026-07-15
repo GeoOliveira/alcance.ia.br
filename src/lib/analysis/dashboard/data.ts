@@ -5,7 +5,7 @@ export type DashboardData = {
   profileHealth: Array<{ subject: string; value: number }>;
   recentPosts: Array<{ label: string; engagement: number; interactions: number }>;
   formatDistribution: Array<{ name: string; value: number }>;
-  topReels: Array<{ name: string; views: number }>;
+  topReels: Array<{ name: string; views: number; url: string | null }>;
   topHashtags: Array<{ name: string; count: number }>;
   formatComparison: Array<{ format: string; likes: number; comments: number; views: number }>;
 };
@@ -34,10 +34,9 @@ export function buildDashboardData(analysis: AnalysisViewModel): DashboardData {
 
   const distribution = advanced?.contentDiversity?.counts;
   const formatDistribution = distribution ? (["reel", "carousel", "image"] as const).map((format) => ({ name: formatLabels[format], value: distribution[format] })).filter((item) => item.value > 0) : [];
-  const topReels = (analysis.productInsights?.reels.byViews ?? []).slice(0, 5).map((item, index) => ({ name: item.post.shortcode ? `#${item.post.shortcode.slice(0, 8)}` : `Reel ${index + 1}`, views: item.views }));
+  const topReels = (analysis.productInsights?.reels.byViews ?? []).slice(0, 5).map((item, index) => ({ name: item.post.shortcode ? `#${item.post.shortcode.slice(0, 8)}` : `Reel ${index + 1}`, views: item.views, url: item.post.permalink ?? null }));
   const topHashtags = (analysis.productInsights?.hashtags.top ?? []).slice(0, 8).map((item) => ({ name: `#${item.hashtag}`, count: item.count }));
   const formatComparison = (advanced?.formatPerformance ?? []).filter((item) => item.format !== "unknown" && [item.averageLikes, item.averageComments, item.averageViews].some((value) => value !== null)).map((item) => ({ format: formatLabels[item.format], likes: Math.round(item.averageLikes ?? 0), comments: Math.round(item.averageComments ?? 0), views: Math.round(item.averageViews ?? 0) }));
 
   return { profileHealth: health, recentPosts, formatDistribution, topReels, topHashtags, formatComparison };
 }
-
