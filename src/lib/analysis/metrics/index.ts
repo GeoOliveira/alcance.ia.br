@@ -1,5 +1,5 @@
 export { ANALYSIS_METRICS_VERSION } from "./version";
-export { calculateAdvancedMetrics } from "./calculate";
+export { calculateAdvancedMetrics, enabledAdvancedMetricModules } from "./calculate";
 export { calculateProfileCompleteness } from "./profile-completeness";
 export { calculateFollowerFollowingRatio } from "./follower-following-ratio";
 export { calculateContentDiversity } from "./content-diversity";

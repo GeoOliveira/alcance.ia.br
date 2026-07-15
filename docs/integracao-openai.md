@@ -4,7 +4,7 @@
 
 Fluxo: ScrapeCreators → contratos normalizados → métricas determinísticas versionadas → pacote sanitizado → Responses API → Structured Outputs → Zod → verificações de consistência → `ai_analysis_runs` → view model → interface.
 
-A integração começa desligada em três níveis: `OPENAI_AI_ANALYSIS_ENABLED=false`, `ai.enabled=false` e `ai_profile_analysis=false`. Nenhuma migration é aplicada remotamente e nenhum deploy é feito por esta implementação. A versão das métricas é `v2.0.0`; a fórmula `engagement-v2` está formalmente auditada em `docs/auditoria-metrica-engajamento.md`. O gate `ai.engagement_interpretation_audited=true` libera somente essa versão para o pacote, sem ativar a integração.
+A integração permanece desligada em três níveis: `OPENAI_AI_ANALYSIS_ENABLED=false`, `ai.enabled=false` e `ai_profile_analysis=false`. A migration 009 prepara as flags das subseções, mas não altera esses controles mestres nem a visibilidade `hidden`. A versão das métricas é `v2.0.0`; a fórmula `engagement-v2` está formalmente auditada em `docs/auditoria-metrica-engajamento.md`. O gate `ai.engagement_interpretation_audited=true` libera somente essa versão para o pacote, sem ativar a integração.
 
 O processamento principal persiste e responde com as métricas antes da IA. O Route Handler agenda a etapa assistiva com `after()`. Uma falha da OpenAI cria uma execução sanitizada, mas não altera o resultado determinístico nem o status concluído da solicitação.
 
@@ -36,7 +36,7 @@ O SDK não repete chamadas. Falhas 429, timeout e 5xx são classificadas como tr
 
 `/admin/integracoes/openai` mostra controles, presença da chave sem valor, modelo, versões, uso diário, tokens, duração, erros e cache. O teste administrativo escolhe análise, recursos e cache, sem prompt livre. `/execucoes` e `/execucoes/[id]` mostram metadados e JSON estruturado sanitizado.
 
-A migration inicia `ai.public_visibility` em `hidden`. A página pública mostra aviso explícito de IA, resumo, bio, primeira prioridade e até duas ideias somente após ativação deliberada: `preview` limita o conjunto permitido, `full` mostra o conjunto completo e `hidden` não consulta nem exibe a saída.
+A migration inicia `ai.public_visibility` em `hidden`. Depois da ativação deliberada, a página mantém todo o relatório determinístico visível, mostra “Preparando insights” e acompanha a execução por status seguro. A saída completa contém Resumo, Análise da bio, Pontos fortes, Oportunidades, Próximas ações, Ideias de conteúdo e Limitações. `preview` limita o conjunto permitido, `full` mostra o conjunto completo e `hidden` não consulta nem exibe a saída.
 
 ## Retenção e operação
 

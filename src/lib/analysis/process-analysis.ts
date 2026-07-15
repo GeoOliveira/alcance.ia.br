@@ -43,7 +43,11 @@ export async function processAnalysis(requestId: string, anonymousSessionId: str
         const { data: cached, error: cachedError } = await admin.from("analysis_results").select("provider,data_quality,profile_data,posts_data,metrics,metrics_history,observations,items_count,fetched_at,source_metadata,metrics_version,engagement_formula_version,engagement_calculated_at,calculated_metrics,calculation_status,calculation_started_at,calculation_completed_at,calculation_error").eq("request_id", recent.id).maybeSingle();
         if (cachedError) throw new Error("analysis_cache_read_failed");
         if (cached) {
-          const cachedWrite = await admin.from("analysis_results").upsert({ ...cached, request_id: requestId, source_metadata: { ...(cached.source_metadata as Record<string, unknown>), used_cache: true } }, { onConflict: "request_id" });
+          const runtime = await getAdvancedAnalysisRuntimeConfig();
+          const cachedProfile = cached.profile_data as InstagramProfile;
+          const cachedPosts = Array.isArray(cached.posts_data) ? cached.posts_data as InstagramPost[] : [];
+          const recalculatedMetrics = calculateAdvancedMetrics(cachedProfile, cachedPosts, runtime.config, runtime.flags);
+          const cachedWrite = await admin.from("analysis_results").upsert({ ...cached, request_id: requestId, metrics_version: ANALYSIS_METRICS_VERSION, calculated_metrics: recalculatedMetrics, calculation_status: recalculatedMetrics.methodology.enabledModules.length ? "complete" : "unavailable", calculation_started_at: recalculatedMetrics.methodology.calculatedAt, calculation_completed_at: new Date().toISOString(), calculation_error: null, source_metadata: { ...(cached.source_metadata as Record<string, unknown>), used_cache: true } }, { onConflict: "request_id" });
           assertDatabaseWrite(cachedWrite);
           const completedWrite = await admin.from("analysis_requests").update({ status: "completed", metadata: { ...metadata, phase: "real_analysis", analysis_stage: "complete", analysis_error_code: null, data_quality: cached.data_quality } }).eq("id", requestId);
           assertDatabaseWrite(completedWrite);

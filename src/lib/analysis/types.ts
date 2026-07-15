@@ -6,6 +6,7 @@ import type { AIProfileAnalysisOutput } from "@/lib/ai/contracts/ai-analysis-out
 
 export type AnalysisState = "waiting" | "processing" | "completed" | "partial" | "not_found" | "private" | "insufficient_data" | "temporary_error" | "unavailable" | "demo";
 export type AnalysisStage = "queued" | "profile" | "content" | "metrics" | "complete";
+export type AIAnalysisPublicState = "preparing" | "processing" | "completed" | "failed";
 export type AnalysisMetrics = {
   averageLikes: number | null; averageComments: number | null; medianLikes: number | null; medianComments: number | null;
   averageInteractions: number | null; medianInteractions: number | null; estimatedEngagementRate: number | null;
@@ -24,6 +25,7 @@ export type AnalysisViewModel = {
   analyzedAt: string | null; profile: InstagramProfile | null; posts: InstagramPost[]; metrics: AnalysisMetrics | null;
   observations: AnalysisObservation[]; topPosts: InstagramPost[]; isCached: boolean; statusMessage: string;
   advancedMetrics?: AdvancedAnalysisMetrics;
+  aiAnalysisState?: AIAnalysisPublicState;
   aiAnalysis?: AIProfileAnalysisOutput;
   aiAnalysisVisibility?: "preview" | "full";
 };

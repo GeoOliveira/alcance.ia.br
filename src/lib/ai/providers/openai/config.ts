@@ -12,6 +12,10 @@ export function isOpenAIEnvironmentEnabled() {
   return process.env.OPENAI_AI_ANALYSIS_ENABLED === "true";
 }
 
+export function isOpenAIConfigured() {
+  return Boolean(process.env.OPENAI_API_KEY?.trim() && process.env.OPENAI_MODEL?.trim());
+}
+
 export function getOpenAIConfig(executionId?: string): OpenAIConfig {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   const model = process.env.OPENAI_MODEL?.trim();

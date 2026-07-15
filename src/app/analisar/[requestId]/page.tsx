@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
+import { after } from "next/server";
 import { Container } from "@/components/ui/container";
 import { EventTracker } from "@/components/analytics/event-tracker";
 import { AnalysisActionPlan } from "@/components/analysis/analysis-action-plan";
@@ -21,7 +22,8 @@ import { AnalysisRecentTrend } from "@/components/analysis/analysis-recent-trend
 import { AnalysisSectionNav } from "@/components/analysis/analysis-section-nav";
 import { AnalysisTopPosts } from "@/components/analysis/analysis-top-posts";
 import { AnalysisUpgradeCta } from "@/components/analysis/analysis-upgrade-cta";
-import { AnalysisAIInterpretation } from "@/components/analysis/analysis-ai-interpretation";
+import { AnalysisAIState } from "@/components/analysis/analysis-ai-state";
+import { generateAIAnalysisForRequest } from "@/lib/ai";
 import { getAnalysisById } from "@/lib/analysis/get-analysis-by-id";
 
 const cookieName = "alcance_anonymous_session";
@@ -45,6 +47,8 @@ export default async function Page({ params }: { params: Promise<{ requestId: st
   if (!analysis.profile || !analysis.metrics) return <main className="analysis-page analysis-processing-page"><Container><AnalysisErrorState state="temporary_error" /></Container></main>;
 
   const advanced = analysis.advancedMetrics;
+  if (analysis.aiAnalysisState === "preparing") after(async () => { await generateAIAnalysisForRequest(requestId); });
+  const hasStructure = Boolean(advanced?.captionAnalysis || advanced?.ctaAnalysis || advanced?.hashtagAnalysis || advanced?.highlightsAudit);
   return <main className="analysis-page">
     <EventTracker name="analysis_viewed" properties={{ request_id: requestId }} />
     <EventTracker name="analysis_completed" properties={{ request_id: requestId }} />
@@ -52,9 +56,9 @@ export default async function Page({ params }: { params: Promise<{ requestId: st
       <AnalysisHeader analysis={analysis} />
       {(analysis.state === "partial" || analysis.state === "insufficient_data") && <div className="analysis-quality-banner" role="status"><strong>{analysis.state === "partial" ? "Resultado parcialmente concluído" : "Poucos dados disponíveis"}</strong><span>{analysis.statusMessage}</span></div>}
       <AnalysisHeroSummary analysis={analysis} />
-      <AnalysisSectionNav />
+      <AnalysisSectionNav showAI={Boolean(analysis.aiAnalysisState)} showCompleteness={Boolean(advanced?.profileCompleteness)} showTrend={Boolean(advanced?.recentTrend)} showStructure={hasStructure} showPlan={Boolean(advanced?.actionPlan?.length)} />
       <AnalysisInsightsCard observations={analysis.observations} />
-      {analysis.aiAnalysis && analysis.aiAnalysisVisibility && <AnalysisAIInterpretation analysis={analysis.aiAnalysis} visibility={analysis.aiAnalysisVisibility} />}
+      {analysis.aiAnalysisState && <AnalysisAIState requestId={requestId} initialState={analysis.aiAnalysisState} analysis={analysis.aiAnalysis} visibility={analysis.aiAnalysisVisibility} />}
       {advanced && <AnalysisProfileCompleteness metrics={advanced} requestId={requestId} />}
       <AnalysisProfileOverview analysis={analysis} />
       <AnalysisMetricsGrid metrics={analysis.metrics} />
@@ -67,6 +71,6 @@ export default async function Page({ params }: { params: Promise<{ requestId: st
       {advanced?.actionPlan && <AnalysisActionPlan items={advanced.actionPlan} requestId={requestId} />}
       <AnalysisMethodology postsCount={analysis.posts.length} metrics={analysis.metrics} methodology={advanced?.methodology} advanced={advanced} requestId={requestId} />
     </Container>
-    <AnalysisUpgradeCta requestId={requestId} />
+    {!analysis.aiAnalysisState && <AnalysisUpgradeCta requestId={requestId} />}
   </main>;
 }
