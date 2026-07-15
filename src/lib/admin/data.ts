@@ -127,11 +127,11 @@ export async function listAdminTable(table: "app_settings" | "feature_flags" | "
 export async function getProductResourcesAdminData() {
   const supabase = await createClient();
   const [features, categories, interest, dashboardModules, dashboardFlags] = await Promise.all([
-    supabase.from("product_features").select("key,name,description,feature_group,audience,status,visibility,enabled,requires_provider_call,provider,dependencies,estimated_credit_cost,limits,updated_at,updated_by").order("feature_group").order("name"),
+    supabase.from("product_features").select("key,name,description,feature_group,audience,status,visibility,enabled,requires_provider_call,provider,dependencies,estimated_credit_cost,limits,metadata,updated_at,updated_by").order("feature_group").order("name"),
     supabase.from("content_categories").select("id,slug,name,description,keywords,seed_hashtags,excluded_terms,language,country,enabled,visible,refresh_minutes,position,updated_at").order("position").order("name"),
     supabase.from("feature_interest").select("feature_key"),
     supabase.from("dashboard_modules").select("key,title,description,icon,chart_type,enabled,visible,access_level,status,display_order,requires_ai,requires_authentication,requires_premium,configuration,updated_at,updated_by").order("display_order"),
-    supabase.from("feature_flags").select("id,key,name,enabled").like("key", "dashboard_%").order("key"),
+    supabase.from("feature_flags").select("id,key,name,enabled").or("key.like.dashboard_%,key.eq.resource_reels_by_category").order("key"),
   ]);
   if (features.error || categories.error || interest.error || dashboardModules.error || dashboardFlags.error) throw new Error("Não foi possível consultar o catálogo de recursos. A migration local pode ainda não ter sido aplicada.");
   const interestCounts = (interest.data || []).reduce<Record<string, number>>((counts, row) => { counts[row.feature_key] = (counts[row.feature_key] ?? 0) + 1; return counts; }, {});

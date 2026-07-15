@@ -99,6 +99,9 @@ export async function updateFeatureFlagAction(_: ActionState, formData: FormData
   if (error) return invalid("Não foi possível alterar a funcionalidade.");
   await writeAudit({ action: "feature_flag_updated", entityType: "feature_flag", entityId: current.key, before: { enabled: current.enabled }, after: { enabled } });
   revalidateTag("public-flags", "max"); revalidatePath("/"); revalidatePath("/admin/funcionalidades"); revalidatePath("/admin/recursos"); revalidatePath("/analisar/[requestId]", "page");
+  if (current.key === "resource_hashtags") { revalidateTag("resource-hashtags-config", "max"); revalidateTag("resource-hashtags-data", "max"); revalidatePath("/recursos/hashtags"); }
+  if (current.key === "resource_trending_reels") { revalidateTag("resource-trending-reels-config", "max"); revalidateTag("resource-trending-reels-data", "max"); revalidatePath("/recursos/reels-em-alta"); }
+  if (current.key === "resource_reels_by_category") { revalidateTag("resource-category-reels-config", "max"); revalidateTag("resource-category-reels-data", "max"); revalidatePath("/recursos/reels-por-categoria", "layout"); }
   return success("Funcionalidade atualizada.");
 }
 

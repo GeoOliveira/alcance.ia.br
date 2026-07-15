@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { decideFeatureAccess, type ProductFeatureRecord } from "./access";
 
-const feature: ProductFeatureRecord = { key: "trending_reels", name: "Reels em alta", description: "", group: "trending", audience: "premium", status: "beta", visibility: "preview", enabled: true, requires_provider_call: true, provider: "scrapecreators", estimated_credit_cost: 1, dependencies: [], limits: {} };
+const feature: ProductFeatureRecord = { key: "trending_reels", name: "Reels em alta", description: "", group: "trending", audience: "premium", status: "beta", visibility: "preview", enabled: true, requires_provider_call: true, provider: "scrapecreators", estimated_credit_cost: 1, dependencies: [], limits: {}, metadata: {} };
 
 describe("decideFeatureAccess", () => {
   it("entrega preview, mas não o conteúdo, para visitante sem premium", () => {
