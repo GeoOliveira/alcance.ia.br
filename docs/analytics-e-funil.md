@@ -6,6 +6,8 @@ A medição acompanha visita, interação, envio, criação da solicitação, pr
 
 Os componentes não chamam GA4 ou Clarity diretamente. `trackEvent` valida o nome, aplica uma lista permitida de propriedades, acrescenta atribuição autorizada, bloqueia sem consentimento e deduplica. Um evento interno é então encaminhado aos provedores configurados.
 
+Na análise avançada, `analysis_section_viewed`, `analysis_action_plan_viewed`, `analysis_methodology_opened` e `analysis_top_post_clicked` usam somente `request_id`, `section_id`, caminho e localização do CTA. O evento administrativo `analysis_recalculate_requested` é registrado na auditoria. Bio, legendas, username, hashtags e o JSON calculado não são propriedades permitidas.
+
 Arquivos principais:
 
 - `src/lib/analytics/types.ts`: taxonomia e propriedades tipadas;

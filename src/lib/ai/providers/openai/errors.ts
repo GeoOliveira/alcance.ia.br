@@ -1,0 +1,14 @@
+export type AIErrorCode = "openai_configuration" | "openai_authentication" | "openai_rate_limit" | "openai_timeout" | "openai_invalid_response" | "openai_content_refusal" | "openai_provider" | "ai_validation" | "ai_consistency";
+
+export class AIIntegrationError extends Error {
+  constructor(public readonly code: AIErrorCode, message: string, public readonly retryable: boolean, public readonly status: number, public readonly executionId?: string, public readonly safeDetails: Record<string, unknown> = {}, public readonly durationMs?: number) { super(message); this.name = new.target.name; }
+}
+export class OpenAIConfigurationError extends AIIntegrationError { constructor(message = "A integração com IA não está configurada.", id?: string, details: Record<string, unknown> = {}) { super("openai_configuration", message, false, 503, id, details); } }
+export class OpenAIAuthenticationError extends AIIntegrationError { constructor(id?: string, duration?: number) { super("openai_authentication", "Não foi possível autenticar o provedor de IA.", false, 502, id, {}, duration); } }
+export class OpenAIRateLimitError extends AIIntegrationError { constructor(id?: string, duration?: number) { super("openai_rate_limit", "O provedor de IA atingiu um limite temporário.", true, 429, id, {}, duration); } }
+export class OpenAITimeoutError extends AIIntegrationError { constructor(id?: string, duration?: number) { super("openai_timeout", "A interpretação por IA excedeu o tempo limite.", true, 504, id, {}, duration); } }
+export class OpenAIInvalidResponseError extends AIIntegrationError { constructor(id?: string, duration?: number, details: Record<string, unknown> = {}) { super("openai_invalid_response", "O provedor retornou uma resposta inválida.", false, 502, id, details, duration); } }
+export class OpenAIContentRefusalError extends AIIntegrationError { constructor(id?: string, duration?: number) { super("openai_content_refusal", "O provedor recusou processar este conteúdo.", false, 422, id, {}, duration); } }
+export class OpenAIProviderError extends AIIntegrationError { constructor(id?: string, retryable = true, duration?: number, details: Record<string, unknown> = {}) { super("openai_provider", "Não foi possível gerar a interpretação por IA.", retryable, 502, id, details, duration); } }
+export class AIAnalysisValidationError extends AIIntegrationError { constructor(id?: string, details: Record<string, unknown> = {}) { super("ai_validation", "A interpretação por IA não passou na validação.", false, 422, id, details); } }
+export class AIAnalysisConsistencyError extends AIIntegrationError { constructor(id?: string, details: Record<string, unknown> = {}) { super("ai_consistency", "A interpretação por IA não passou nas verificações de consistência.", false, 422, id, details); } }

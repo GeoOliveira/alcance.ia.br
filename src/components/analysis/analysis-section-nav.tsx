@@ -1,11 +1,14 @@
 const sections = [
   ["resumo", "Resumo"],
   ["prioridades", "Diagnóstico"],
-  ["perfil", "Perfil"],
-  ["engajamento", "Métricas"],
+  ["completude", "Completude"],
+  ["estabilidade", "Engajamento"],
+  ["tendencia", "Tendência"],
   ["consistencia", "Consistência"],
-  ["formatos", "Conteúdo"],
+  ["formatos", "Formatos"],
+  ["estrutura", "Estrutura"],
   ["publicacoes", "Publicações"],
+  ["plano", "Plano"],
 ];
 
 export function AnalysisSectionNav() {

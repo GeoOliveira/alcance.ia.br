@@ -1,6 +1,7 @@
-import { type NextRequest } from "next/server";
+import { after, type NextRequest } from "next/server";
 import { getSafeAnalysisStatus } from "@/lib/analysis/get-analysis-by-id";
 import { processAnalysis } from "@/lib/analysis/process-analysis";
+import { generateAIAnalysisForRequest } from "@/lib/ai";
 
 const sessionCookie = "alcance_anonymous_session";
 
@@ -18,6 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ requestId: string }> }) {
   const { requestId } = await params;
   const result = await processAnalysis(requestId, request.cookies.get(sessionCookie)?.value);
+  if (result.ok && (("complete" in result && result.complete) || ("cached" in result && result.cached))) after(async () => { await generateAIAnalysisForRequest(requestId); });
 
   return Response.json(result, {
     status: result.ok ? 200 : result.code === "not_found" ? 404 : 503,

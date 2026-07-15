@@ -23,6 +23,8 @@ export const adminPermissions = [
   "provider_poc.execute",
   "provider_poc.export",
   "provider_poc.delete",
+  "ai_integration.view",
+  "ai_integration.execute",
 ] as const;
 export type AdminPermission = (typeof adminPermissions)[number];
 

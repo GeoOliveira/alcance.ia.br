@@ -1,0 +1,10 @@
+import type { InstagramPost } from "@/lib/social-providers/contracts/instagram-post";
+import { average, confidence, median, percent, validDates } from "./common";
+import type { PublishingRegularityResult } from "./types";
+
+export function calculatePublishingRegularity(posts: InstagramPost[], now = new Date()): PublishingRegularityResult {
+  const dates = validDates(posts.map((post) => post.publishedAt)); const age = (date: Date) => (now.getTime() - date.getTime()) / 86_400_000; const intervals = dates.slice(1).map((date, index) => (date.getTime() - dates[index]!.getTime()) / 86_400_000); const posts90 = dates.filter((date) => age(date) <= 90); const weeks = new Set(posts90.map((date) => Math.floor((now.getTime() - date.getTime()) / (7 * 86_400_000)))); const activeWeeks = weeks.size, totalWeeks = posts90.length ? Math.min(13, Math.max(1, Math.ceil((age(posts90[0]!) + 1) / 7))) : 0, inactiveWeeks = Math.max(0, totalWeeks - activeWeeks); const medianInterval = median(intervals), longest = intervals.length ? Math.max(...intervals) : null; const recent30 = dates.filter((date) => age(date) <= 30).length;
+  const classification = dates.length < 3 ? "insufficient" : recent30 === 0 ? "recently_inactive" : medianInterval !== null && longest !== null && longest > medianInterval * 2.5 ? "irregular" : activeWeeks / Math.max(totalWeeks, 1) >= 0.65 ? "consistent" : activeWeeks / Math.max(totalWeeks, 1) >= 0.3 ? "moderately_consistent" : "irregular";
+  const recent7 = dates.filter((date) => age(date) <= 7).length;
+  return { available: dates.length >= 2, explanationCode: dates.length >= 2 ? "public_post_dates" : "insufficient_post_dates", confidence: confidence(dates.length, 3, 12, !dates.length), postsLast7Days: recent7, postsLast30Days: recent30, postsLast90Days: posts90.length, last7ShareOf30Percent: percent(recent7, recent30), weeklyAverage: totalWeeks ? posts90.length / totalWeeks : null, averageIntervalDays: average(intervals), medianIntervalDays: medianInterval, longestGapDays: longest, activeWeeks, inactiveWeeks, classification };
+}

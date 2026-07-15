@@ -14,9 +14,11 @@ O processamento consulta perfil e, se público, posts e Reels. Estágios reais (
 
 A migration `202607140005_analysis_results.sql` cria `analysis_results`, sem grants públicos e com RLS. Ela armazena contratos normalizados, métricas determinísticas, observações por regras, qualidade, timestamps e metadados técnicos mínimos. Respostas brutas, chaves e headers não são expostos.
 
-Métricas: seguidores/seguindo, médias e medianas de curtidas/comentários, engajamento estimado por seguidores, média de views de Reels, formatos, posts em 7/30 dias, intervalo médio, melhor post e melhor formato observado. Valores ausentes permanecem `null` e aparecem como “Não disponível” ou “Dados insuficientes”.
+Métricas: seguidores/seguindo, médias e medianas de curtidas/comentários, engajamento médio e típico estimados por seguidores, média de views de Reels, formatos, posts em 7/30 dias, intervalo médio, melhor post e melhor formato observado. A taxa versionada `engagement-v2` exige curtidas e comentários observados no mesmo post, usa até 20 publicações dos últimos 90 dias e mantém views separadas. Valores ausentes permanecem `null` e aparecem como “Não disponível” ou “Dados insuficientes”. Consulte `docs/auditoria-metrica-engajamento.md` e `docs/dicionario-de-metricas.md`.
 
 O ranking usa interações conhecidas (`curtidas + 2 × comentários`) e views apenas como desempate. Classificações de engajamento, consistência e variedade estão em `analysis-metrics.ts`; não são uma nota definitiva.
+
+A camada avançada `v2.0.0` adiciona completude, relação seguidores/seguindo, diversidade e desempenho por formato, estabilidade e concentração, tendência recente, regularidade, estrutura de legendas, CTAs, hashtags e plano de ação por regras. Esses indicadores são calculados em `src/lib/analysis/metrics`, persistidos como JSONB versionado e exibidos somente quando suas flags estão ativas. Destaques são explicitamente marcados como não coletados, sem chamada adicional. Fórmulas e limites estão em [metricas-avancadas-deterministicas.md](metricas-avancadas-deterministicas.md).
 
 ## Estrutura visual e estados
 
@@ -38,6 +40,11 @@ Os tokens exclusivos do relatório ficam centralizados em `src/app/analisar/anal
 - `AnalysisContentFormatBreakdown`: barra de composição e indicação textual do melhor formato;
 - `AnalysisTopPosts`: galeria responsiva com proporção estável, data e estado vazio;
 - `AnalysisMethodology`: acordeão nativo com fonte, amostra e limitações;
+- `AnalysisProfileCompleteness`: score, barra e critérios presentes/ausentes;
+- `AnalysisEngagementDiagnostics`: estabilidade, concentração e conteúdos fora da curva;
+- `AnalysisRecentTrend`: comparação neutra entre grupos cronológicos;
+- `AnalysisPublicationStructure`: legendas, CTAs, hashtags e indisponibilidade de destaques;
+- `AnalysisActionPlan`: até três prioridades determinísticas com evidência e confiança;
 - `AnalysisUpgradeCta`: prévia claramente marcada como “Em breve”, separada do valor real.
 
 ### Responsividade, acessibilidade e performance
@@ -48,13 +55,13 @@ Gráficos possuem alternativa textual ou `aria-label`, o menu e a metodologia us
 
 Estados suportados: aguardando, processando, concluído, parcial, poucos dados, não encontrado, privado, erro temporário e indisponível. Todas as páginas individuais usam `noindex`, `nofollow` e `nocache` e não entram no sitemap.
 
-## IA futura
+## Interpretação assistida por IA
 
-O view model reserva `aiSummary`, `bioAnalysis`, `contentIdeas`, `recommendedActions` e `captionSuggestions`, todos opcionais e ausentes agora. A interface comunica esses recursos como futuros, sem fingir resultados.
+O view model pode receber `aiAnalysis` somente após schema e consistência aprovados. A seção pública respeita flag e `ai.public_visibility`, identifica claramente conteúdo gerado por IA e mostra uma prévia sem esconder todo o valor. A chamada ocorre após a resposta determinística com `after()` e sua falha não quebra a análise principal. Consulte `docs/integracao-openai.md`.
 
 ## Telemetria e testes
 
-Eventos cobrem visualização, conclusão, erro, clique em post e CTA final, usando apenas `request_id` e contexto — nunca username. Testes verificam métricas, nulos, ranking, observações, estados, view model, noindex e renderização segura.
+Eventos cobrem visualização, conclusão, erro, seções, plano, metodologia, clique em post e CTA final, usando apenas `request_id`, `section_id` e contexto — nunca username, bio, legenda ou hashtags. Testes verificam métricas, nulos, amostras mínimas, regras, flags, migration, compatibilidade, noindex e renderização segura.
 
 ## Limitações e próximos passos
 
