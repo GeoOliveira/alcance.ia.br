@@ -83,3 +83,6 @@ Eventos cobrem visualização, conclusão, erro, seções, plano, metodologia, c
 ## Limitações e próximos passos
 
 Contas privadas não podem ser analisadas; disponibilidade e campos dependem do Instagram; URLs de mídia podem expirar; a amostra inicial usa uma página de cada feed. A comparação de consistência mostra apenas agregados reais de 7 e 30 dias, pois o view model ainda não expõe distribuição semanal. Recomenda-se futuramente uma fila durável, histórico real para tendências e atualização solicitada pelo usuário.
+## Recursos determinísticos de hashtags e Reels
+
+O resultado pode incluir hashtags mais usadas e rankings separados de Reels por visualizações, engajamento por visualização e desempenho proporcional aos seguidores. Esses blocos usam exclusivamente a amostra já persistida e respeitam o catálogo central de recursos. Campos ausentes são excluídos do critério correspondente e não viram zero.

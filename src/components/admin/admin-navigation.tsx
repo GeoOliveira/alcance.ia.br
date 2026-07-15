@@ -14,6 +14,7 @@ const items: { href: string; label: string; permission: AdminPermission }[] = [
   { href: "/admin/conteudo/faq", label: "Perguntas frequentes", permission: "faq.manage" },
   { href: "/admin/configuracoes", label: "Configurações", permission: "settings.manage" },
   { href: "/admin/funcionalidades", label: "Funcionalidades", permission: "features.manage" },
+  { href: "/admin/recursos", label: "Recursos do produto", permission: "features.manage" },
   { href: "/admin/integracoes/scrapecreators", label: "ScrapeCreators POC", permission: "provider_poc.view" },
   { href: "/admin/integracoes/openai", label: "OpenAI", permission: "ai_integration.view" },
   { href: "/admin/usuarios", label: "Usuários", permission: "users.view" },

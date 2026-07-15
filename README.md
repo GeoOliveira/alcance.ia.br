@@ -186,3 +186,7 @@ A versão `v2.0.0` centraliza métricas puras em `src/lib/analysis/metrics`, per
 ## Interpretação assistida pela OpenAI
 
 A integração server-only usa Responses API, Structured Outputs, prompt/schema versionados, pacote sanitizado, cache, consumo e verificações de consistência. Ela permanece desativada por padrão e aceita somente a fórmula de engajamento `engagement-v2`, formalmente auditada. Consulte [docs/integracao-openai.md](docs/integracao-openai.md).
+
+## Catálogo de recursos e descoberta
+
+Hashtags e rankings independentes de Reels usam o snapshot já armazenado da análise, sem novas chamadas. O catálogo central controla acesso público, gratuito, premium e administrativo, além de estado, visibilidade, limites, dependências e custo estimado. Descoberta e tendências permanecem desligadas até a homologação de endpoints. Consulte [catálogo](docs/catalogo-de-recursos.md), [controle e planos](docs/controle-de-recursos-e-planos.md), [metodologia](docs/metodologia-dos-rankings.md) e [descoberta por categoria](docs/hashtags-e-reels-por-categoria.md).
