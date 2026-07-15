@@ -1,0 +1,4 @@
+import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ApifyProviderError } from "./providers/apify/errors";
+export async function enforceApifyDailyRunLimit(limit:number){const admin=createAdminClient();if(!admin)throw new ApifyProviderError("APIFY_CONFIGURATION",503,"O serviço de pesquisa ainda não foi configurado.",false);const start=new Date();start.setUTCHours(0,0,0,0);const result=await admin.from("branded_content_search_runs").select("id",{count:"exact",head:true}).eq("provider_used","apify").eq("from_cache",false).gte("created_at",start.toISOString());if(result.error)throw new ApifyProviderError("APIFY_CONFIGURATION",503,"O serviço de pesquisa ainda não foi configurado.",false);if((result.count||0)>=limit)throw new ApifyProviderError("APIFY_RATE_LIMIT",429,"O limite de pesquisas foi atingido. Tente novamente mais tarde.",false)}

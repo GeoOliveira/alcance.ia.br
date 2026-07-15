@@ -14,13 +14,13 @@ export type ProductFeatureRecord = {
   key: ProductFeatureKey;
   name: string;
   description: string;
-  group: "profile" | "category" | "trending" | "audio";
+  group: "profile" | "category" | "trending" | "audio" | "research";
   audience: ProductFeatureAudience;
   status: ProductFeatureStatus;
   visibility: ProductFeatureVisibility;
   enabled: boolean;
   requires_provider_call: boolean;
-  provider: "scrapecreators" | "internal";
+  provider: "scrapecreators" | "meta" | "multi" | "internal";
   dependencies: ProductFeatureKey[];
   estimated_credit_cost: number;
   limits: Record<string, number>;

@@ -13,10 +13,10 @@ import type { ActionState } from "@/types/admin";
 const featureSchema = z.object({
   key: z.enum(productFeatureKeys),
   audience: z.enum(["public", "free", "premium", "admin"]),
-  status: z.enum(["development", "beta", "active", "disabled"]),
+  status: z.enum(["development", "beta", "active", "disabled", "maintenance"]),
   visibility: z.enum(["hidden", "preview", "full"]),
   enabled: z.enum(["true", "false"]),
-  maxItems: z.coerce.number().int().min(1).max(100),
+  maxItems: z.coerce.number().int().min(1).max(500),
   dailyRequests: z.coerce.number().int().min(0).max(10000),
   cacheMinutes: z.coerce.number().int().min(0).max(10080),
   estimatedCreditCost: z.coerce.number().min(0).max(10000),
@@ -25,9 +25,21 @@ const featureSchema = z.object({
   indexable: z.enum(["true", "false"]).optional(),
   enabledCountries: z.string().max(500).optional(),
   enabledLanguages: z.string().max(500).optional(),
+  anonymousDailyRequests: z.coerce.number().int().min(0).max(10000).optional(),
+  freeDailyRequests: z.coerce.number().int().min(0).max(10000).optional(),
+  premiumDailyRequests: z.coerce.number().int().min(0).max(10000).optional(),
+  adminDailyRequests: z.coerce.number().int().min(0).max(10000).optional(),
+  requiresAuthentication: z.enum(["true", "false"]).optional(),
+  requiresPremium: z.enum(["true", "false"]).optional(),
+  paginationEnabled: z.enum(["true", "false"]).optional(),
+  aiSummaryEnabled: z.enum(["true", "false"]).optional(),
+  exportEnabled: z.enum(["true", "false"]).optional(),
+  historyEnabled: z.enum(["true", "false"]).optional(),
+  beta: z.enum(["true", "false"]).optional(),
+  unavailableMessage: z.string().trim().max(300).optional(),
 });
 const categorySchema = z.object({ id: z.string().uuid().or(z.literal("")), slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80), name: z.string().trim().min(2).max(80), description: z.string().trim().max(500), keywords: z.string().max(500), seedHashtags: z.string().max(500), excludedTerms: z.string().max(500), language: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/), country: z.string().regex(/^[A-Z]{2}$/), refreshMinutes: z.coerce.number().int().min(60).max(10080), position: z.coerce.number().int().min(0).max(10000), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]) });
-const dashboardModuleSchema = z.object({ key: z.enum(dashboardModuleKeys), title: z.string().trim().min(3).max(120), description: z.string().trim().max(500), icon: z.string().trim().min(2).max(40), displayOrder: z.coerce.number().int().min(0).max(10000), minimumData: z.coerce.number().int().min(1).max(100), accessLevel: z.enum(["public", "free", "premium", "admin"]), status: z.enum(["development", "beta", "active", "disabled"]), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]), requiresAI: z.enum(["true", "false"]), requiresAuthentication: z.enum(["true", "false"]), requiresPremium: z.enum(["true", "false"]), dependencies: z.string().max(1000) });
+const dashboardModuleSchema = z.object({ key: z.enum([...dashboardModuleKeys, "branded_content_chart_types", "branded_content_chart_timeline", "branded_content_chart_partners", "branded_content_chart_creators"]), title: z.string().trim().min(3).max(120), description: z.string().trim().max(500), icon: z.string().trim().min(2).max(40), displayOrder: z.coerce.number().int().min(0).max(10000), minimumData: z.coerce.number().int().min(1).max(100), accessLevel: z.enum(["public", "free", "premium", "admin"]), status: z.enum(["development", "beta", "active", "disabled"]), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]), requiresAI: z.enum(["true", "false"]), requiresAuthentication: z.enum(["true", "false"]), requiresPremium: z.enum(["true", "false"]), dependencies: z.string().max(1000) });
 const hashtagCollectionSchema = z.object({ categoryLimit: z.coerce.number().int().min(1).max(10), seedsPerCategory: z.coerce.number().int().min(1).max(3), period: z.enum(["last-week", "last-month", "last-year"]), confirmation: z.literal("COLETAR HASHTAGS") });
 const fail = (message: string): ActionState => ({ ok: false, message });
 
@@ -92,13 +104,14 @@ export async function updateProductFeatureAction(_: ActionState, formData: FormD
   const enabledLanguages = parsed.data.enabledLanguages === undefined ? currentMetadata.enabledLanguages : [...new Set(parsed.data.enabledLanguages.split(",").map((item) => item.trim()).filter((item) => /^[a-z]{2}(?:-[A-Z]{2})?$/.test(item)))].slice(0, 30);
   const critical = (!enabled && current.enabled && current.visibility === "full") || (parsed.data.audience === "premium" && current.audience !== "premium") || (enabled && parsed.data.status === "beta" && (!current.enabled || current.status !== "beta")) || (enabled && !current.enabled && current.requires_provider_call) || parsed.data.dailyRequests > (currentLimits.dailyRequests ?? 0) || parsed.data.estimatedCreditCost > Number(current.estimated_credit_cost || 0) || dependencies.join("|") !== (current.dependencies || []).join("|") || (automaticRefresh && currentMetadata.automaticRefresh !== true) || (indexable && currentMetadata.indexable === false);
   if (critical && formData.get("confirmation") !== "ATIVAR") return fail("Digite ATIVAR para confirmar um recurso com consumo externo ou acesso premium completo.");
-  const limits = { maxItems: parsed.data.maxItems, dailyRequests: parsed.data.dailyRequests, cacheMinutes: parsed.data.cacheMinutes };
-  const metadata = { ...currentMetadata, automaticRefresh, indexable, ...(parsed.data.enabledCountries === undefined ? {} : { enabledCountries }), ...(parsed.data.enabledLanguages === undefined ? {} : { enabledLanguages }) };
+  const limits = { ...currentLimits, maxItems: parsed.data.maxItems, dailyRequests: parsed.data.dailyRequests, cacheMinutes: parsed.data.cacheMinutes, ...(parsed.data.anonymousDailyRequests === undefined ? {} : { anonymousDailyRequests: parsed.data.anonymousDailyRequests }), ...(parsed.data.freeDailyRequests === undefined ? {} : { freeDailyRequests: parsed.data.freeDailyRequests }), ...(parsed.data.premiumDailyRequests === undefined ? {} : { premiumDailyRequests: parsed.data.premiumDailyRequests }), ...(parsed.data.adminDailyRequests === undefined ? {} : { adminDailyRequests: parsed.data.adminDailyRequests }) };
+  const optionalBoolean = (value: "true" | "false" | undefined, current: unknown) => value === undefined ? current === true : value === "true";
+  const metadata = { ...currentMetadata, automaticRefresh, indexable, requiresAuthentication: optionalBoolean(parsed.data.requiresAuthentication, currentMetadata.requiresAuthentication), requiresPremium: optionalBoolean(parsed.data.requiresPremium, currentMetadata.requiresPremium), paginationEnabled: optionalBoolean(parsed.data.paginationEnabled, currentMetadata.paginationEnabled), aiSummaryEnabled: optionalBoolean(parsed.data.aiSummaryEnabled, currentMetadata.aiSummaryEnabled), exportEnabled: optionalBoolean(parsed.data.exportEnabled, currentMetadata.exportEnabled), historyEnabled: optionalBoolean(parsed.data.historyEnabled, currentMetadata.historyEnabled), beta: optionalBoolean(parsed.data.beta, currentMetadata.beta), ...(parsed.data.unavailableMessage === undefined ? {} : { unavailableMessage: parsed.data.unavailableMessage }), ...(parsed.data.enabledCountries === undefined ? {} : { enabledCountries }), ...(parsed.data.enabledLanguages === undefined ? {} : { enabledLanguages }) };
   const next = { audience: parsed.data.audience, status: parsed.data.status, visibility: parsed.data.visibility, enabled, estimated_credit_cost: parsed.data.estimatedCreditCost, dependencies, limits, metadata, updated_by: session.userId };
   const { error } = await supabase.from("product_features").update(next).eq("key", current.key);
   if (error) return fail("Não foi possível atualizar o recurso.");
   await writeAudit({ action: "product_feature_updated", entityType: "product_feature", entityId: current.key, before: { audience: current.audience, status: current.status, visibility: current.visibility, enabled: current.enabled, estimated_credit_cost: current.estimated_credit_cost, dependencies: current.dependencies, limits: current.limits }, after: next });
-  revalidatePath("/admin/recursos"); revalidatePath("/recursos"); revalidatePath("/recursos/hashtags"); revalidatePath("/recursos/reels-em-alta"); revalidatePath("/recursos/reels-por-categoria", "layout"); revalidatePath("/analisar/[requestId]", "page");
+  revalidatePath("/admin/recursos"); revalidatePath("/admin/recursos/branded_content_search"); revalidatePath("/recursos"); revalidatePath("/recursos/conteudo-de-marca"); revalidatePath("/recursos/hashtags"); revalidatePath("/recursos/reels-em-alta"); revalidatePath("/recursos/reels-por-categoria", "layout"); revalidatePath("/analisar/[requestId]", "page");
   if (current.key === "resource_hashtags") { revalidateTag("resource-hashtags-config", "max"); revalidateTag("resource-hashtags-data", "max"); }
   if (current.key === "resource_trending_reels") { revalidateTag("resource-trending-reels-config", "max"); revalidateTag("resource-trending-reels-data", "max"); }
   if (current.key === "resource_reels_by_category") { revalidateTag("resource-category-reels-config", "max"); revalidateTag("resource-category-reels-data", "max"); }

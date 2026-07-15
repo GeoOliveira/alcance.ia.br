@@ -131,7 +131,7 @@ export async function getProductResourcesAdminData() {
     supabase.from("content_categories").select("id,slug,name,description,keywords,seed_hashtags,excluded_terms,language,country,enabled,visible,refresh_minutes,position,updated_at").order("position").order("name"),
     supabase.from("feature_interest").select("feature_key"),
     supabase.from("dashboard_modules").select("key,title,description,icon,chart_type,enabled,visible,access_level,status,display_order,requires_ai,requires_authentication,requires_premium,configuration,updated_at,updated_by").order("display_order"),
-    supabase.from("feature_flags").select("id,key,name,enabled").or("key.like.dashboard_%,key.eq.resource_reels_by_category").order("key"),
+    supabase.from("feature_flags").select("id,key,name,enabled").or("key.like.dashboard_%,key.eq.resource_reels_by_category,key.like.resource_branded_content%").order("key"),
     supabase.from("category_discovery_runs").select("id,status,items_count,provider_calls,period,error_code,created_at,completed_at,content_categories(name)").eq("feature_key", "category_hashtag_discovery").order("created_at", { ascending: false }).limit(8),
   ]);
   if (features.error || categories.error || interest.error || dashboardModules.error || dashboardFlags.error || hashtagRuns.error) throw new Error("Não foi possível consultar o catálogo de recursos. A migration local pode ainda não ter sido aplicada.");

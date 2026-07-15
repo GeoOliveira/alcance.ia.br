@@ -1,0 +1,5 @@
+export type BrandedContentPlatform = "instagram" | "facebook";
+export type BrandedContentEntity = { id: string | null; name: string | null; username: string | null; profileUrl: string | null };
+export type BrandedContentResult = { id: string; platform: BrandedContentPlatform | "unknown"; type: string | null; typeLabel: string; creationDate: string | null; creator: BrandedContentEntity | null; partners: BrandedContentEntity[]; contentUrl: string | null; providerMetadata: { provider: "meta_official" | "apify"; providerItemId: string | null; fetchedAt: string; confidence: "high" | "medium" | "low" } };
+export type BrandedContentPagination = { mode: "cursor" | "complete" | "offset" | "none"; hasNextPage: boolean; cursor: string | null; offset: number | null; after: string | null };
+export type BrandedContentSearchResponse = { results: BrandedContentResult[]; pagination: BrandedContentPagination; meta: { platform: BrandedContentPlatform; queryDisplay: string; dateMin: string; dateMax: string; loadedResults: number; fromCache: boolean; searchedAt: string } };

@@ -1,0 +1,1 @@
+export function EmptyResults() { return <div className="branded-state"><span aria-hidden="true">◇</span><h2>Não encontramos conteúdos de marca para esta conta no período selecionado.</h2><p>Revise o username ou a Página, amplie o período e confirme se a conta participou de uma parceria declarada.</p></div>; }

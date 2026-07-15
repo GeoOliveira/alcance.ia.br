@@ -190,3 +190,7 @@ A integração server-only usa Responses API, Structured Outputs, prompt/schema 
 ## Catálogo de recursos e descoberta
 
 Hashtags e rankings independentes de Reels usam o snapshot já armazenado da análise, sem novas chamadas. O catálogo central controla acesso público, gratuito, premium e administrativo, além de estado, visibilidade, limites, dependências e custo estimado. Descoberta e tendências permanecem desligadas até a homologação de endpoints. Consulte [catálogo](docs/catalogo-de-recursos.md), [controle e planos](docs/controle-de-recursos-e-planos.md), [metodologia](docs/metodologia-dos-rankings.md) e [descoberta por categoria](docs/hashtags-e-reels-por-categoria.md).
+
+### Pesquisa de Conteúdo de Marca
+
+A rota `/recursos/conteudo-de-marca` usa um serviço interno `server-only` com adaptadores para Meta oficial e Apify. O padrão permanece `meta_only`; Apify, fallback, comparação, paginação, dashboard, IA, histórico e exportação começam desativados. Consulte [arquitetura](docs/arquitetura-provedores-conteudo-de-marca.md), [integração Apify](docs/integracao-apify-brand-collaboration.md), [fallback](docs/fallback-conteudo-de-marca.md), [custos](docs/custos-apify-conteudo-de-marca.md) e [requisitos da Meta](docs/meta-branded-content-requisitos.md).

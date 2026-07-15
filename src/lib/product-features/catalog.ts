@@ -9,6 +9,7 @@ export const productFeatureKeys = [
   "resource_hashtags",
   "resource_trending_reels",
   "resource_reels_by_category",
+  "branded_content_search",
   "category_hashtag_discovery",
   "category_reels_discovery",
   "category_reels_by_views",
@@ -21,9 +22,9 @@ export const productFeatureKeys = [
 
 export type ProductFeatureKey = (typeof productFeatureKeys)[number];
 export type ProductFeatureAudience = "public" | "free" | "premium" | "admin";
-export type ProductFeatureStatus = "development" | "beta" | "active" | "disabled" | "inactive";
+export type ProductFeatureStatus = "development" | "beta" | "active" | "disabled" | "maintenance" | "inactive";
 export type ProductFeatureVisibility = "hidden" | "preview" | "full";
-export type ProductFeatureGroup = "profile" | "category" | "trending" | "audio";
+export type ProductFeatureGroup = "profile" | "category" | "trending" | "audio" | "research";
 
 export type ProductFeatureDefinition = {
   key: ProductFeatureKey;
@@ -35,7 +36,7 @@ export type ProductFeatureDefinition = {
   defaultVisibility: ProductFeatureVisibility;
   defaultEnabled: boolean;
   requiresProviderCall: boolean;
-  provider: "scrapecreators" | "internal";
+  provider: "scrapecreators" | "meta" | "multi" | "internal";
   dependencies: readonly ProductFeatureKey[];
   estimatedCreditCost: number;
   defaultLimits: Record<string, number>;
@@ -56,6 +57,7 @@ export const productFeatureCatalog: readonly ProductFeatureDefinition[] = [
   { ...profile, key: "resource_hashtags", name: "Descoberta pública de hashtags", description: "Ferramenta pública baseada exclusivamente em snapshots válidos de hashtags por categoria.", group: "category", defaultLimits: { maxItems: 60, dailyRequests: 0, cacheMinutes: 360 } },
   { ...trending, key: "resource_trending_reels", name: "Reels em alta — página pública", description: "Lista periodicamente atualizada baseada exclusivamente em uma amostra pública persistida.", defaultAudience: "public", defaultStatus: "active", defaultVisibility: "full", defaultEnabled: true, requiresProviderCall: false, provider: "internal", estimatedCreditCost: 0, defaultLimits: { maxItems: 48, dailyRequests: 0, cacheMinutes: 180 } },
   { ...discovery, key: "resource_reels_by_category", name: "Reels por categoria — página pública", description: "Exploração pública de Reels organizados pelas categorias e snapshots administrados.", defaultAudience: "public", defaultStatus: "active", defaultVisibility: "full", defaultEnabled: true, requiresProviderCall: false, provider: "internal", estimatedCreditCost: 0, defaultLimits: { maxItems: 60, dailyRequests: 0, cacheMinutes: 180 } },
+  { key: "branded_content_search", name: "Pesquisa de Conteúdo de Marca", description: "Pesquisa conteúdos de marca por provedores integrados e resposta normalizada.", group: "research", defaultAudience: "admin", defaultStatus: "development", defaultVisibility: "hidden", defaultEnabled: false, requiresProviderCall: true, provider: "multi", dependencies: [], estimatedCreditCost: 1, defaultLimits: { dailyRequests: 100, anonymousDailyRequests: 3, freeDailyRequests: 10, premiumDailyRequests: 50, adminDailyRequests: 100, maxItems: 100, cacheMinutes: 15 } },
   { ...discovery, key: "category_hashtag_discovery", name: "Hashtags por categoria", description: "Descoberta de hashtags em snapshots de categorias aprovadas." },
   { ...discovery, key: "category_reels_discovery", name: "Reels por categoria", description: "Descoberta de Reels em snapshots de categorias aprovadas." },
   { ...discovery, key: "category_reels_by_views", name: "Reels da categoria por views", description: "Ranking por visualizações dentro de uma categoria." },

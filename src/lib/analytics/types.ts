@@ -50,6 +50,15 @@ export const analyticsEvents = [
   "cookie_preferences_opened",
   "client_error",
   "server_action_failed",
+  "branded_content_page_viewed",
+  "branded_content_search_started",
+  "branded_content_search_completed",
+  "branded_content_search_empty",
+  "branded_content_search_failed",
+  "branded_content_load_more",
+  "branded_content_result_opened",
+  "branded_content_premium_preview_viewed",
+  "branded_content_interest_registered",
 ] as const;
 
 export type AnalyticsEvent = (typeof analyticsEvents)[number];
@@ -75,6 +84,12 @@ type CommonProperties = AttributionProperties & {
   section_id?: string;
   analytics_enabled?: boolean;
   marketing_enabled?: boolean;
+  platform?: "instagram" | "facebook";
+  period_selected?: string;
+  result_count?: number;
+  cache_status?: "hit" | "miss";
+  status?: string;
+  access_level?: "public" | "free" | "premium" | "admin";
 };
 
 export type AnalyticsEventProperties = {

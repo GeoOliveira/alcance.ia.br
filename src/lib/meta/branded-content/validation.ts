@@ -1,0 +1,10 @@
+import { z } from "zod";
+import { BRANDED_CONTENT_EARLIEST_DATE, brandedContentPlatformSchema, cursorSchema } from "./schemas";
+import { normalizeFacebookPageUrl, normalizeInstagramUsername } from "./normalize";
+const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => { const date = new Date(`${value}T00:00:00.000Z`); return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value; }, "Data inválida.");
+export const searchQuerySchema = z.object({ platform: brandedContentPlatformSchema, username: z.string().max(100).optional(), pageUrl: z.string().max(500).optional(), dateMin: dateSchema, dateMax: dateSchema, after: cursorSchema.optional() }).strict().superRefine((value, context) => {
+  if (value.platform === "instagram") { if (!value.username || value.pageUrl) context.addIssue({ code: "custom", path: ["username"], message: "Informe somente um nome de usuário do Instagram." }); else { try { normalizeInstagramUsername(value.username); } catch { context.addIssue({ code: "custom", path: ["username"], message: "Informe um nome de usuário válido do Instagram." }); } } }
+  else if (!value.pageUrl || value.username) context.addIssue({ code: "custom", path: ["pageUrl"], message: "Informe somente a URL de uma Página do Facebook." }); else { try { normalizeFacebookPageUrl(value.pageUrl); } catch { context.addIssue({ code: "custom", path: ["pageUrl"], message: "Informe uma URL válida de Página do Facebook." }); } }
+  const today = new Date().toISOString().slice(0, 10); if (value.dateMin < BRANDED_CONTENT_EARLIEST_DATE) context.addIssue({ code: "custom", path: ["dateMin"], message: `A data mínima é ${BRANDED_CONTENT_EARLIEST_DATE}.` }); if (value.dateMax > today) context.addIssue({ code: "custom", path: ["dateMax"], message: "A data final não pode ser futura." }); if (value.dateMin > value.dateMax) context.addIssue({ code: "custom", path: ["dateMin"], message: "A data inicial não pode ser posterior à final." });
+});
+export type BrandedContentSearchQuery = z.infer<typeof searchQuerySchema>;

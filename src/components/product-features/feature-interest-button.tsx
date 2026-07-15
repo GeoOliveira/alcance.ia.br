@@ -4,7 +4,7 @@ import { useState } from "react";
 import { trackEvent } from "@/lib/analytics/track";
 import type { ProductFeatureKey } from "@/lib/product-features/catalog";
 
-export function FeatureInterestButton({ featureKey, source = "resources_page" }: { featureKey: ProductFeatureKey; source?: "resources_page" | "analysis_result" | "discovery_page" }) {
+export function FeatureInterestButton({ featureKey, source = "resources_page" }: { featureKey: ProductFeatureKey; source?: "resources_page" | "analysis_result" | "discovery_page" | "branded_content_page" }) {
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   async function submit() {
     if (state === "sending" || state === "done") return;
