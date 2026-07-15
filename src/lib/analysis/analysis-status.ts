@@ -9,4 +9,7 @@ export function stateFromRecord(status: string, metadata: Record<string, unknown
 export function stageFromMetadata(metadata: Record<string, unknown>): AnalysisStage {
   const stage = metadata.analysis_stage; return ["queued", "profile", "content", "metrics", "complete"].includes(String(stage)) ? stage as AnalysisStage : "queued";
 }
+export function isTerminalAnalysisState(state: string): state is Exclude<AnalysisState, "waiting" | "processing"> {
+  return ["completed", "partial", "not_found", "private", "insufficient_data", "temporary_error", "unavailable", "demo"].includes(state);
+}
 export const analysisStageLabels: Record<AnalysisStage, string> = { queued: "Preparando a solicitação", profile: "Analisando o perfil público", content: "Carregando publicações disponíveis", metrics: "Calculando métricas determinísticas", complete: "Resultado preparado" };
