@@ -7,6 +7,7 @@ import { OpenAIConfigurationError } from "./providers/openai/errors";
 const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/202607150008_openai_profile_analysis.sql"), "utf8");
 const clientSource = readFileSync(resolve(process.cwd(), "src/lib/ai/providers/openai/client.ts"), "utf8");
 const publicFlowMigration = readFileSync(resolve(process.cwd(), "supabase/migrations/202607150009_public_analysis_flow.sql"), "utf8");
+const activationMigration = readFileSync(resolve(process.cwd(), "supabase/migrations/202607150010_activate_public_ai_insights.sql"), "utf8");
 const old = { key: process.env.OPENAI_API_KEY, model: process.env.OPENAI_MODEL };
 afterEach(() => { if (old.key === undefined) delete process.env.OPENAI_API_KEY; else process.env.OPENAI_API_KEY = old.key; if (old.model === undefined) delete process.env.OPENAI_MODEL; else process.env.OPENAI_MODEL = old.model; });
 
@@ -17,5 +18,6 @@ describe("OpenAI integration controls", () => {
   it("ships feature flags disabled and recognizes the audited engagement-v2 gate", () => { for (const flag of ["ai_profile_analysis", "ai_profile_summary", "ai_bio_analysis", "ai_recommendations", "ai_content_ideas", "ai_action_plan_explanation"]) expect(migration).toMatch(new RegExp(`\\('${flag}'[^\\n]+false,'public'\\)`)); expect(migration).toContain("ai.engagement_interpretation_audited','true'"); expect(migration).toContain("engagement-v2"); });
   it("starts with public AI output hidden and permits the administrative ai category", () => { expect(migration).toContain("'ai.public_visibility','\"hidden\"'"); expect(migration).toContain("'scrapecreators','ai'"); });
   it("prepares all AI subsections while keeping the master feature disabled", () => { for (const flag of ["ai_profile_summary", "ai_bio_analysis", "ai_recommendations", "ai_content_ideas", "ai_action_plan_explanation"]) expect(publicFlowMigration).toContain(`'${flag}'`); expect(publicFlowMigration).toContain("where key = 'ai_profile_analysis'"); });
+  it("activates all internal public gates in a separate auditable migration", () => { expect(activationMigration).toContain("where key = 'ai.enabled'"); expect(activationMigration).toContain("where key = 'ai.public_visibility'"); expect(activationMigration).toContain("'\"full\"'::jsonb"); expect(activationMigration).toContain("where key = 'ai_profile_analysis'"); });
   it("protects persistence with RLS and no public grants", () => { expect(migration).toContain("enable row level security"); expect(migration).toContain("revoke all on public.ai_analysis_runs from public, anon, authenticated"); expect(migration).not.toContain("grant insert on public.ai_analysis_runs to anon"); });
 });

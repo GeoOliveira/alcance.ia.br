@@ -13,6 +13,7 @@ O diretório contém a representação versionada do banco. O estado remoto não
 7. `202607150007_engagement_metric_audit.sql`: fórmula auditada `engagement-v2` e histórico.
 8. `202607150008_openai_profile_analysis.sql`: execuções estruturadas da OpenAI, settings/flags desligados, índices e RLS.
 9. `202607150009_public_analysis_flow.sql`: ativa os módulos determinísticos públicos e prepara as subseções de IA sem ligar seu controle mestre.
+10. `202607150010_activate_public_ai_insights.sql`: ativa o controle mestre e a visibilidade pública completa dos Insights inteligentes.
 
 Com a Supabase CLI instalada e autenticada:
 

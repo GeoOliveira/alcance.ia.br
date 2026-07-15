@@ -4,7 +4,7 @@
 
 Fluxo: ScrapeCreators → contratos normalizados → métricas determinísticas versionadas → pacote sanitizado → Responses API → Structured Outputs → Zod → verificações de consistência → `ai_analysis_runs` → view model → interface.
 
-A integração permanece desligada em três níveis: `OPENAI_AI_ANALYSIS_ENABLED=false`, `ai.enabled=false` e `ai_profile_analysis=false`. A migration 009 prepara as flags das subseções, mas não altera esses controles mestres nem a visibilidade `hidden`. A versão das métricas é `v2.0.0`; a fórmula `engagement-v2` está formalmente auditada em `docs/auditoria-metrica-engajamento.md`. O gate `ai.engagement_interpretation_audited=true` libera somente essa versão para o pacote, sem ativar a integração.
+A integração é protegida em três níveis: `OPENAI_AI_ANALYSIS_ENABLED`, `ai.enabled` e `ai_profile_analysis`. A migration 009 prepara as flags das subseções sem ativar o provedor; a migration 010 ativa os controles internos e define a visibilidade pública como `full`. A chamada só ocorre em um deployment que também tenha o ambiente explicitamente habilitado. A versão das métricas é `v2.0.0`; a fórmula `engagement-v2` está formalmente auditada em `docs/auditoria-metrica-engajamento.md`.
 
 O processamento principal persiste e responde com as métricas antes da IA. O Route Handler agenda a etapa assistiva com `after()`. Uma falha da OpenAI cria uma execução sanitizada, mas não altera o resultado determinístico nem o status concluído da solicitação.
 
