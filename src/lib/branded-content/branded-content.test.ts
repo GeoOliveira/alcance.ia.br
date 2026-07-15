@@ -27,7 +27,7 @@ describe("resolução multiprovedor",()=>{
 });
 
 describe("adaptador Apify",()=>{
-  it("constrói URL fechada no domínio Meta",()=>{const url=new URL(buildMetaBrandedContentLibraryUrl({...input,resultsLimit:10}));expect(url.origin).toBe("https://www.facebook.com");expect(url.pathname).toBe("/ads/library/branded_content/");expect([...url.searchParams.keys()].sort()).toEqual(["end_date","query","start_date","target"])});
+  it("constrói URL fechada no domínio Meta",()=>{const url=new URL(buildMetaBrandedContentLibraryUrl({...input,resultsLimit:10}));expect(url.origin).toBe("https://www.facebook.com");expect(url.pathname).toBe("/ads/library/branded_content/");expect(url.searchParams.get("id")).toBe("17841400436448271");expect([...url.searchParams.keys()].sort()).toEqual(["end_date","id","query","start_date","target"])});
   it("não aceita SSRF por username",()=>expect(()=>buildMetaBrandedContentLibraryUrl({...input,username:"https://evil.test",resultsLimit:10})).toThrow());
   it("produz somente o input documentado",()=>expect(Object.keys(buildApifyInput({...input,resultsLimit:10})).sort()).toEqual(["onlyPostsNewerThan","onlyPostsOlderThan","resultsLimit","startUrls"]));
   it("extrai username somente de URL suportada",()=>{expect(extractInstagramUsername("https://www.instagram.com/_u/Nike")).toBe("nike");expect(extractInstagramUsername("https://evil.test/_u/nike")).toBeNull()});
