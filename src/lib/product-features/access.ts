@@ -24,6 +24,7 @@ export type ProductFeatureRecord = {
   dependencies: ProductFeatureKey[];
   estimated_credit_cost: number;
   limits: Record<string, number>;
+  metadata: Record<string, unknown>;
   updated_at?: string;
 };
 
@@ -53,6 +54,7 @@ function defaultRecord(key: ProductFeatureKey): ProductFeatureRecord {
     dependencies: [...definition.dependencies],
     estimated_credit_cost: definition.estimatedCreditCost,
     limits: definition.defaultLimits,
+    metadata: {},
   };
 }
 
@@ -61,7 +63,7 @@ export const getProductFeatures = cache(async (): Promise<ProductFeatureRecord[]
   try {
     const admin = createAdminClient();
     if (!admin) return [...defaults.values()];
-    const { data, error } = await admin.from("product_features").select("key,name,description,feature_group,audience,status,visibility,enabled,requires_provider_call,provider,dependencies,estimated_credit_cost,limits,updated_at");
+    const { data, error } = await admin.from("product_features").select("key,name,description,feature_group,audience,status,visibility,enabled,requires_provider_call,provider,dependencies,estimated_credit_cost,limits,metadata,updated_at");
     if (error || !data) return [...defaults.values()];
     for (const row of data) {
       const current = defaults.get(row.key as ProductFeatureKey);
@@ -80,6 +82,7 @@ export const getProductFeatures = cache(async (): Promise<ProductFeatureRecord[]
         dependencies: Array.isArray(row.dependencies) ? row.dependencies.filter((value): value is ProductFeatureKey => typeof value === "string" && productFeatureCatalog.some((item) => item.key === value)) : current.dependencies,
         estimated_credit_cost: typeof row.estimated_credit_cost === "number" ? row.estimated_credit_cost : current.estimated_credit_cost,
         limits: row.limits && typeof row.limits === "object" ? row.limits as Record<string, number> : current.limits,
+        metadata: row.metadata && typeof row.metadata === "object" ? row.metadata as Record<string, unknown> : current.metadata,
         updated_at: row.updated_at,
       });
     }
