@@ -69,6 +69,7 @@ describe("public hashtag resource wiring", () => {
   const migration = readFileSync("supabase/migrations/202607150013_public_hashtag_resource.sql", "utf8");
   const page = readFileSync("src/app/recursos/hashtags/page.tsx", "utf8");
   const dataModule = readFileSync("src/lib/product-features/public-hashtags.ts", "utf8");
+  const detailPage = readFileSync("src/app/recursos/hashtags/[hashtag]/page.tsx", "utf8");
 
   it("registra catálogo e feature flag com o mesmo identificador", () => {
     expect(migration.match(/resource_hashtags/g)?.length).toBeGreaterThanOrEqual(2);
@@ -88,5 +89,11 @@ describe("public hashtag resource wiring", () => {
     expect(dataModule).toContain('unstable_cache(readValidHashtagSnapshots');
     expect(dataModule).not.toContain("scrape-creators");
     expect(dataModule).not.toContain("fetch(");
+  });
+
+  it("mantém páginas de detalhe fora do índice e não segue seus links internos", () => {
+    expect(detailPage).toContain("index: false, follow: false");
+    expect(detailPage).toContain('rel="nofollow"');
+    expect(page).toContain('rel="nofollow"');
   });
 });

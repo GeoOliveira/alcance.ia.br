@@ -13,6 +13,7 @@ export function AnalyticsLink<Name extends AnalyticsEvent>({
   eventName,
   properties,
   onClick,
+  rel,
 }: {
   href: string;
   children: ReactNode;
@@ -21,12 +22,14 @@ export function AnalyticsLink<Name extends AnalyticsEvent>({
   eventName: Name;
   properties?: AnalyticsEventProperties[Name];
   onClick?: () => void;
+  rel?: string;
 }) {
   return (
     <Link
       href={href}
       className={className}
       style={style}
+      rel={rel}
       onClick={() => {
         trackEvent(eventName, properties);
         onClick?.();
