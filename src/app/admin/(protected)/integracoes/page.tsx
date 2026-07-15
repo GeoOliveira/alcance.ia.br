@@ -2,11 +2,13 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/admin-ui";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { hasPermission } from "@/lib/admin/permissions";
+import { isApifyConfigured } from "@/lib/providers/apify/client";
 
 const integrations = [
   { href: "/admin/integracoes/scrapecreators", name: "ScrapeCreators", description: "Consultas públicas do Instagram, testes técnicos, execuções e consumo de créditos.", permission: "provider_poc.view" as const, status: () => Boolean(process.env.SCRAPECREATORS_API_KEY && process.env.SCRAPECREATORS_POC_ENABLED === "true") },
   { href: "/admin/integracoes/openai", name: "OpenAI", description: "Interpretação assistida por IA, modelo configurado, controles e histórico de execuções.", permission: "ai_integration.view" as const, status: () => Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_AI_ANALYSIS_ENABLED === "true") },
   { href: "/admin/integracoes/turnstile", name: "Turnstile", description: "Proteção anti-bot dos formulários públicos com validação pelo Cloudflare.", permission: "settings.manage" as const, status: () => Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && process.env.TURNSTILE_SECRET_KEY) },
+  { href: "/admin/integracoes/apify", name: "Apify", description: "Pesquisa de conteúdo de marca, limites de consumo, cache, testes controlados e comparação com a Meta.", permission: "features.manage" as const, status: isApifyConfigured },
 ];
 
 export default async function IntegrationsPage() {
