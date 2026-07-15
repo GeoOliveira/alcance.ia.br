@@ -5,6 +5,7 @@ import type { ProductFeatureAudience, ProductFeatureStatus, ProductFeatureVisibi
 
 export type HashtagTrend = "alta" | "estável" | "baixa";
 export type HashtagPopularity = "alta" | "média" | "baixa";
+export type PublicHashtagContent = { id: string; url: string; thumbnailUrl: string; caption: string; username: string; publishedAt: string; likes: number; comments: number; views: number };
 export type PublicHashtagItem = {
   id: string;
   hashtag: string;
@@ -16,8 +17,10 @@ export type PublicHashtagItem = {
   updatedAt: string;
   popularity: HashtagPopularity;
   related: string[];
+  contents: PublicHashtagContent[];
 };
 export type RecurringHashtagItem = { hashtag: string; occurrences: number; contentsFound: number; categories: string[]; trend: HashtagTrend };
+export type PublicHashtagDetail = { hashtag: string; occurrences: number; contentsFound: number; trend: HashtagTrend; popularity: HashtagPopularity; categories: string[]; categorySlugs: string[]; related: string[]; updatedAt: string; contents: PublicHashtagContent[] };
 
 export type HashtagResourceConfig = {
   enabled: boolean;
@@ -50,6 +53,15 @@ const signedNumberValue = (source: Record<string, unknown>, keys: string[]) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 const hashtagName = (value: string) => value.trim().toLocaleLowerCase("pt-BR").replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "").slice(0, 80);
+const safePublicUrl = (value: unknown, image = false) => {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value); if (url.protocol !== "https:") return "";
+    if (image && !["cdninstagram.com", "fbcdn.net"].some((host) => url.hostname === host || url.hostname.endsWith(`.${host}`))) return "";
+    if (!image && !(url.hostname === "instagram.com" || url.hostname.endsWith(".instagram.com"))) return "";
+    return url.toString();
+  } catch { return ""; }
+};
 
 function trendFor(source: Record<string, unknown>): HashtagTrend {
   const label = textValue(source, ["trend", "trendDirection", "trend_direction", "tendency", "tendencia"]).toLocaleLowerCase("pt-BR");
@@ -75,6 +87,12 @@ function itemsFromSnapshot(snapshot: unknown): unknown[] {
 }
 
 export function normalizeHashtagSnapshot(snapshot: unknown, category: CategoryRow, fetchedAt: string): PublicHashtagItem[] {
+  const snapshotSource = record(snapshot);
+  const rawContents = record(snapshotSource.contents);
+  const contentMap = new Map<string, PublicHashtagContent>(Object.entries(rawContents).flatMap(([id, value]) => {
+    const source = record(value); const url = safePublicUrl(source.url); if (!url) return [];
+    return [[id, { id, url, thumbnailUrl: safePublicUrl(source.thumbnailUrl ?? source.thumbnail_url, true), caption: textValue(source, ["caption"]).replace(/\s+/g, " ").slice(0, 280), username: textValue(source, ["username"]).replace(/^@/, "").slice(0, 80), publishedAt: textValue(source, ["publishedAt", "published_at"]), likes: numberValue(source, ["likes"]), comments: numberValue(source, ["comments"]), views: numberValue(source, ["views"]) }]];
+  }));
   return itemsFromSnapshot(snapshot).flatMap((value) => {
     const source = record(value);
     const hashtag = hashtagName(textValue(source, ["hashtag", "tag", "name", "label"]));
@@ -84,7 +102,9 @@ export function normalizeHashtagSnapshot(snapshot: unknown, category: CategoryRo
     const relatedSource = source.related ?? source.relatedHashtags ?? source.related_hashtags;
     const related = Array.isArray(relatedSource) ? [...new Set(relatedSource.flatMap((item) => typeof item === "string" ? [hashtagName(item)] : []).filter(Boolean))].slice(0, 5) : [];
     const updatedAt = textValue(source, ["updatedAt", "updated_at", "fetchedAt", "fetched_at"]) || fetchedAt;
-    return [{ id: `${category.slug}:${hashtag}`, hashtag, occurrences, trend: trendFor(source), category: category.name, categorySlug: category.slug, contentsFound, updatedAt, popularity: popularityFor(source, occurrences), related }];
+    const ids = Array.isArray(source.contentIds) ? source.contentIds : Array.isArray(source.content_ids) ? source.content_ids : [];
+    const contents = [...new Set(ids.filter((id): id is string => typeof id === "string"))].flatMap((id) => contentMap.has(id) ? [contentMap.get(id)!] : []).slice(0, 6);
+    return [{ id: `${category.slug}:${hashtag}`, hashtag, occurrences, trend: trendFor(source), category: category.name, categorySlug: category.slug, contentsFound, updatedAt, popularity: popularityFor(source, occurrences), related, contents }];
   });
 }
 
@@ -107,6 +127,14 @@ export function getMostRecurringHashtags(items: PublicHashtagItem[], limit = 8):
     grouped.set(item.hashtag, current);
   }
   return [...grouped.values()].sort((a, b) => b.occurrences - a.occurrences || b.contentsFound - a.contentsFound || a.hashtag.localeCompare(b.hashtag, "pt-BR")).slice(0, Math.max(1, Math.min(20, limit)));
+}
+
+export function findPublicHashtagDetail(items: PublicHashtagItem[], value: string, categorySlug = ""): PublicHashtagDetail | null {
+  const hashtag = hashtagName(value);
+  const matches = items.filter((item) => item.hashtag === hashtag && (!categorySlug || item.categorySlug === categorySlug));
+  if (!matches.length) return null;
+  const contents = [...new Map(matches.flatMap((item) => item.contents).map((content) => [content.url, content])).values()].slice(0, 12);
+  return { hashtag, occurrences: matches.reduce((sum, item) => sum + item.occurrences, 0), contentsFound: matches.reduce((sum, item) => sum + item.contentsFound, 0), trend: matches.some((item) => item.trend === "alta") ? "alta" : matches.some((item) => item.trend === "baixa") ? "baixa" : "estável", popularity: matches.some((item) => item.popularity === "alta") ? "alta" : matches.some((item) => item.popularity === "média") ? "média" : "baixa", categories: [...new Set(matches.map((item) => item.category))], categorySlugs: [...new Set(matches.map((item) => item.categorySlug))], related: [...new Set(matches.flatMap((item) => item.related))].slice(0, 8), updatedAt: matches.map((item) => item.updatedAt).sort().at(-1) ?? "", contents };
 }
 
 async function readResourceConfig(): Promise<HashtagResourceConfig> {

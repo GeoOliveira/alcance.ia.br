@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminPageHeader } from "@/components/admin/admin-ui";
 import { updateFeatureFlagAction } from "@/app/admin/actions/operations";
@@ -104,7 +105,7 @@ export default async function ProductResourcesPage({ searchParams }: { searchPar
       <div className="admin-dashboard-flags">{resourceFlags.map((flag) => <AdminActionForm action={updateFeatureFlagAction} className="admin-dashboard-flag" submitLabel="Aplicar" key={flag.key}><input type="hidden" name="id" value={flag.id} /><span>{flag.name}<small>{flag.key}</small></span><select name="enabled" defaultValue={String(flag.enabled)}><option value="true">Ativa</option><option value="false">Inativa</option></select></AdminActionForm>)}</div>
     </section>
     <section className="admin-panel admin-resource-panel admin-hashtag-collector">
-      <div className="admin-panel-header"><div><h2>Atualização das hashtags públicas</h2><p>Consulta amostras públicas por categoria e publica somente resultados agregados no cache.</p></div><a className="admin-secondary-button" href="/recursos/hashtags">Abrir página pública</a></div>
+      <div className="admin-panel-header"><div><h2>Atualização das hashtags públicas</h2><p>Consulta amostras públicas por categoria e publica somente resultados agregados no cache.</p></div><Link className="admin-secondary-button" href="/recursos/hashtags">Abrir página pública</Link></div>
       <div className="admin-hashtag-layout">
         <AdminActionForm action={runHashtagDiscoveryAction} className="admin-form admin-resource-form" submitLabel="Atualizar hashtags" pendingLabel="Coletando hashtags…">
           <div className="admin-hashtag-callout"><strong>Consumo controlado</strong><span>Limite configurado: {hashtagFeature?.limits.dailyRequests ?? 0} chamadas/dia · custo estimado: {hashtagFeature?.estimated_credit_cost ?? 0} crédito por chamada.</span></div>

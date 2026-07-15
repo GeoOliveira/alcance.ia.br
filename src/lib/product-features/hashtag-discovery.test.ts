@@ -36,4 +36,16 @@ describe("buildHashtagSnapshot", () => {
     expect(snapshot.items).toHaveLength(1);
     expect(snapshot.items[0]).toMatchObject({ hashtag: "moda", occurrences: 3, trend: "alta" });
   });
+
+  it("mantém uma referência segura de conteúdo sem repeti-la em cada hashtag", () => {
+    const snapshot = buildHashtagSnapshot({
+      posts: [{ key: "post-1", seed: "moda", caption: "Legenda #moda #look", url: "https://www.instagram.com/p/ABC123/", thumbnailUrl: "https://scontent.cdninstagram.com/photo.jpg", username: "criador", likes: 10, comments: 2, views: 30 }],
+      maxItems: 20,
+      updatedAt: "2026-07-15T12:00:00.000Z",
+    });
+
+    expect(snapshot.contents["post-1"]).toMatchObject({ username: "criador", likes: 10, url: "https://www.instagram.com/p/ABC123/" });
+    expect(snapshot.items.find((item) => item.hashtag === "moda")?.contentIds).toEqual(["post-1"]);
+    expect(snapshot.items.find((item) => item.hashtag === "look")?.contentIds).toEqual(["post-1"]);
+  });
 });

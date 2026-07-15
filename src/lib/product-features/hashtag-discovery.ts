@@ -9,7 +9,7 @@ export type HashtagDiscoveryPeriod = "last-week" | "last-month" | "last-year";
 type Trend = "alta" | "estável" | "baixa";
 type Popularity = "alta" | "média" | "baixa";
 type Category = { id: string; slug: string; name: string; seed_hashtags: string[]; excluded_terms: string[]; refresh_minutes: number };
-type SearchPost = { key: string; caption: string; seed?: string; seeds?: string[] };
+type SearchPost = { key: string; caption: string; seed?: string; seeds?: string[]; url?: string; thumbnailUrl?: string; username?: string; publishedAt?: string; likes?: number; comments?: number; views?: number };
 type PreviousItem = { hashtag?: unknown; occurrences?: unknown };
 
 export type HashtagSnapshotItem = {
@@ -19,8 +19,10 @@ export type HashtagSnapshotItem = {
   trend: Trend;
   popularity: Popularity;
   related: string[];
+  contentIds: string[];
   updatedAt: string;
 };
+export type HashtagSnapshotContent = { id: string; url: string; thumbnailUrl: string; caption: string; username: string; publishedAt: string; likes: number; comments: number; views: number };
 
 export type HashtagDiscoverySummary = {
   selectedCategories: number;
@@ -35,6 +37,16 @@ export type HashtagDiscoverySummary = {
 
 const asRecord = (value: unknown): Record<string, unknown> => value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 const normalizeHashtag = (value: string) => value.normalize("NFKC").trim().toLocaleLowerCase("pt-BR").replace(/^#+/, "").replace(/[^\p{L}\p{N}_]/gu, "").slice(0, 80);
+const safeHttpsUrl = (value: unknown) => {
+  if (typeof value !== "string") return "";
+  try { const url = new URL(value); return url.protocol === "https:" ? url.toString().slice(0, 1000) : ""; } catch { return ""; }
+};
+const metric = (value: unknown) => { const parsed = Number(value); return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : 0; };
+const publishedDate = (value: unknown) => {
+  if (typeof value === "number" && Number.isFinite(value)) return new Date(value < 10_000_000_000 ? value * 1000 : value).toISOString();
+  if (typeof value === "string" && value) { const parsed = new Date(value); if (!Number.isNaN(parsed.getTime())) return parsed.toISOString(); }
+  return "";
+};
 
 function postsFromResponse(body: unknown, seed: string): SearchPost[] {
   const source = asRecord(body);
@@ -42,9 +54,13 @@ function postsFromResponse(body: unknown, seed: string): SearchPost[] {
   if (!rows) return [];
   return rows.flatMap((value, index) => {
     const post = asRecord(value);
+    const owner = asRecord(post.owner);
     const caption = [post.caption, post.text, post.description].find((candidate): candidate is string => typeof candidate === "string") ?? "";
     const identity = [post.id, post.shortcode, post.url, post.display_url].find((candidate): candidate is string | number => typeof candidate === "string" || typeof candidate === "number");
-    return [{ key: identity ? String(identity) : `${seed}:${index}:${caption.slice(0, 80)}`, caption, seed }];
+    const shortcode = typeof post.shortcode === "string" ? post.shortcode.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 80) : "";
+    const directUrl = safeHttpsUrl(post.url ?? post.permalink);
+    const url = directUrl || (shortcode ? `https://www.instagram.com/p/${shortcode}/` : "");
+    return [{ key: String(identity ?? `${seed}:${index}:${caption.slice(0, 80)}`).slice(0, 160), caption: caption.slice(0, 2000), seed, url, thumbnailUrl: safeHttpsUrl(post.thumbnail_src ?? post.thumbnail_url ?? post.display_url), username: String(owner.username ?? post.username ?? "").replace(/^@/, "").slice(0, 80), publishedAt: publishedDate(post.taken_at ?? post.timestamp ?? post.published_at), likes: metric(post.like_count ?? post.likes), comments: metric(post.comment_count ?? post.comments), views: metric(post.video_view_count ?? post.video_play_count ?? post.view_count ?? post.views) }];
   });
 }
 
@@ -70,11 +86,14 @@ export function buildHashtagSnapshot(input: {
       key: post.key,
       caption: post.caption.length > current.caption.length ? post.caption : current.caption,
       seeds: [...new Set([current.seed, ...(current.seeds ?? []), post.seed, ...(post.seeds ?? [])].filter((seed): seed is string => Boolean(seed)))],
+      url: current.url || post.url, thumbnailUrl: current.thumbnailUrl || post.thumbnailUrl, username: current.username || post.username,
+      publishedAt: current.publishedAt || post.publishedAt, likes: Math.max(current.likes ?? 0, post.likes ?? 0), comments: Math.max(current.comments ?? 0, post.comments ?? 0), views: Math.max(current.views ?? 0, post.views ?? 0),
     });
   }
   const uniquePosts = [...uniquePostMap.values()];
   const counts = new Map<string, number>();
   const related = new Map<string, Map<string, number>>();
+  const contentIds = new Map<string, string[]>();
   for (const post of uniquePosts) {
     const tags = hashtagsForPost(post).filter((tag) => !excluded.has(tag));
     for (const tag of tags) {
@@ -82,6 +101,7 @@ export function buildHashtagSnapshot(input: {
       const neighbors = related.get(tag) ?? new Map<string, number>();
       for (const candidate of tags) if (candidate !== tag) neighbors.set(candidate, (neighbors.get(candidate) ?? 0) + 1);
       related.set(tag, neighbors);
+      if (post.url) contentIds.set(tag, [...new Set([...(contentIds.get(tag) ?? []), post.key])].slice(0, 6));
     }
   }
   const previous = new Map((input.previousItems ?? []).flatMap((item) => {
@@ -98,9 +118,20 @@ export function buildHashtagSnapshot(input: {
     const trend: Trend = old === undefined ? "estável" : change > 15 ? "alta" : change < -15 ? "baixa" : "estável";
     const popularity: Popularity = index < highBoundary ? "alta" : index < mediumBoundary ? "média" : "baixa";
     const neighbors = [...(related.get(hashtag)?.entries() ?? [])].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "pt-BR")).slice(0, 5).map(([tag]) => tag);
-    return { hashtag, occurrences, contentsFound: occurrences, trend, popularity, related: neighbors, updatedAt: input.updatedAt };
+    return { hashtag, occurrences, contentsFound: occurrences, trend, popularity, related: neighbors, contentIds: contentIds.get(hashtag) ?? [], updatedAt: input.updatedAt };
   });
-  return { items, sampledPosts: uniquePosts.length };
+  const referencedIds = new Set<string>();
+  for (let position = 0; position < 6 && referencedIds.size < 60; position += 1) {
+    for (const item of items) {
+      const id = item.contentIds[position];
+      if (id) referencedIds.add(id);
+      if (referencedIds.size >= 60) break;
+    }
+  }
+  const contents = Object.fromEntries(uniquePosts.filter((post) => post.url && referencedIds.has(post.key)).slice(0, 60).map((post): [string, HashtagSnapshotContent] => [post.key, { id: post.key, url: post.url!, thumbnailUrl: post.thumbnailUrl ?? "", caption: post.caption.replace(/\s+/g, " ").trim().slice(0, 280), username: post.username ?? "", publishedAt: post.publishedAt ?? "", likes: post.likes ?? 0, comments: post.comments ?? 0, views: post.views ?? 0 }]));
+  const availableIds = new Set(Object.keys(contents));
+  for (const item of items) item.contentIds = item.contentIds.filter((id) => availableIds.has(id));
+  return { items, contents, sampledPosts: uniquePosts.length };
 }
 
 function snapshotItems(value: unknown): PreviousItem[] {
@@ -142,7 +173,7 @@ async function runCategory(input: { category: Category; seeds: string[]; period:
     const expiresAt = new Date(now.getTime() + input.category.refresh_minutes * 60_000).toISOString();
     const status = built.items.length ? errors.length ? "partial" : "completed" : "failed";
     if (built.items.length) {
-      const snapshot = { version: 1, methodology: "recorrência em posts públicos retornados por hashtags-semente; posts duplicados contam uma vez", period: input.period, sampledPosts: built.sampledPosts, seeds: input.seeds, items: built.items };
+      const snapshot = { version: 2, methodology: "recorrência em posts públicos retornados por hashtags-semente; posts duplicados contam uma vez", period: input.period, sampledPosts: built.sampledPosts, seeds: input.seeds, contents: built.contents, items: built.items };
       const { error } = await admin.from("category_discovery_results").insert({ category_id: input.category.id, result_type: "hashtags", ranking: "relevance", snapshot, item_count: built.items.length, provider: "scrapecreators", provider_calls: calls, fetched_at: now.toISOString(), expires_at: expiresAt });
       if (error) throw new Error("Não foi possível publicar o snapshot.");
     }

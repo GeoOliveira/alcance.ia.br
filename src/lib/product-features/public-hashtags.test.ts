@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { decideHashtagResourceAccess, filterPublicHashtags, getMostRecurringHashtags, normalizeHashtagSnapshot, type HashtagResourceConfig, type PublicHashtagItem } from "./public-hashtags";
+import { decideHashtagResourceAccess, filterPublicHashtags, findPublicHashtagDetail, getMostRecurringHashtags, normalizeHashtagSnapshot, type HashtagResourceConfig, type PublicHashtagItem } from "./public-hashtags";
 
 const category = { id: "category-1", slug: "marketing", name: "Marketing" };
 const config: HashtagResourceConfig = { enabled: true, flagEnabled: true, audience: "public", status: "active", visibility: "full", maxItems: 60, cacheMinutes: 360, automaticRefresh: false, indexable: true };
@@ -8,12 +8,12 @@ const config: HashtagResourceConfig = { enabled: true, flagEnabled: true, audien
 describe("normalizeHashtagSnapshot", () => {
   it("normaliza aliases, tendências, popularidade e hashtags relacionadas", () => {
     const result = normalizeHashtagSnapshot({ hashtags: [
-      { tag: "#Marketing-Digital", frequency: 1200, posts_count: 875, growth_rate: "12", related_hashtags: ["#conteudo", "conteudo", "#social-media"] },
+      { tag: "#Marketing-Digital", frequency: 1200, posts_count: 875, growth_rate: "12", related_hashtags: ["#conteudo", "conteudo", "#social-media"], contentIds: ["post-1", "invalid"] },
       { name: "nicho", count: 20, change_percent: "-9" },
-    ] }, category, "2026-07-15T12:00:00.000Z");
+    ], contents: { "post-1": { url: "https://www.instagram.com/p/ABC123/", thumbnailUrl: "https://scontent.cdninstagram.com/photo.jpg", caption: "Uma publicação de exemplo", username: "alcance", likes: 12, comments: 3, views: 50 }, invalid: { url: "javascript:alert(1)" } } }, category, "2026-07-15T12:00:00.000Z");
 
     expect(result).toHaveLength(2);
-    expect(result[0]).toMatchObject({ hashtag: "marketingdigital", occurrences: 1200, contentsFound: 875, trend: "alta", popularity: "alta", related: ["conteudo", "socialmedia"] });
+    expect(result[0]).toMatchObject({ hashtag: "marketingdigital", occurrences: 1200, contentsFound: 875, trend: "alta", popularity: "alta", related: ["conteudo", "socialmedia"], contents: [{ username: "alcance", likes: 12 }] });
     expect(result[1]).toMatchObject({ hashtag: "nicho", trend: "baixa", popularity: "baixa" });
   });
 
@@ -24,9 +24,9 @@ describe("normalizeHashtagSnapshot", () => {
 
 describe("filterPublicHashtags", () => {
   const items: PublicHashtagItem[] = [
-    { id: "1", hashtag: "marketing", occurrences: 300, trend: "alta", category: "Marketing", categorySlug: "marketing", contentsFound: 240, updatedAt: "2026-07-14T12:00:00.000Z", popularity: "média", related: ["conteudo"] },
-    { id: "2", hashtag: "gastronomia", occurrences: 800, trend: "estável", category: "Gastronomia", categorySlug: "gastronomia", contentsFound: 700, updatedAt: "2026-06-01T12:00:00.000Z", popularity: "alta", related: [] },
-    { id: "3", hashtag: "conteudocriativo", occurrences: 120, trend: "alta", category: "Marketing", categorySlug: "marketing", contentsFound: 90, updatedAt: "2026-07-13T12:00:00.000Z", popularity: "média", related: [] },
+    { id: "1", hashtag: "marketing", occurrences: 300, trend: "alta", category: "Marketing", categorySlug: "marketing", contentsFound: 240, updatedAt: "2026-07-14T12:00:00.000Z", popularity: "média", related: ["conteudo"], contents: [] },
+    { id: "2", hashtag: "gastronomia", occurrences: 800, trend: "estável", category: "Gastronomia", categorySlug: "gastronomia", contentsFound: 700, updatedAt: "2026-06-01T12:00:00.000Z", popularity: "alta", related: [], contents: [] },
+    { id: "3", hashtag: "conteudocriativo", occurrences: 120, trend: "alta", category: "Marketing", categorySlug: "marketing", contentsFound: 90, updatedAt: "2026-07-13T12:00:00.000Z", popularity: "média", related: [], contents: [] },
   ];
 
   it("combina busca, categoria, período e tendência", () => {
@@ -42,6 +42,14 @@ describe("filterPublicHashtags", () => {
     const recurring = getMostRecurringHashtags([...items, { ...items[0], id: "4", category: "Negócios", categorySlug: "negocios", occurrences: 100 }], 2);
     expect(recurring[0]).toMatchObject({ hashtag: "gastronomia", occurrences: 800 });
     expect(recurring.find((item) => item.hashtag === "marketing")).toMatchObject({ occurrences: 400, categories: ["Marketing", "Negócios"] });
+  });
+
+  it("monta o detalhe por hashtag e categoria sem duplicar conteúdos", () => {
+    const content = { id: "post-1", url: "https://www.instagram.com/p/ABC/", thumbnailUrl: "", caption: "Exemplo", username: "criador", publishedAt: "", likes: 1, comments: 0, views: 0 };
+    const detail = findPublicHashtagDetail([{ ...items[0], contents: [content] }, { ...items[0], id: "4", category: "Negócios", categorySlug: "negocios", contents: [content] }], "#marketing");
+    expect(detail).toMatchObject({ hashtag: "marketing", occurrences: 600, categories: ["Marketing", "Negócios"] });
+    expect(detail?.contents).toHaveLength(1);
+    expect(findPublicHashtagDetail(items, "inexistente")).toBeNull();
   });
 });
 
