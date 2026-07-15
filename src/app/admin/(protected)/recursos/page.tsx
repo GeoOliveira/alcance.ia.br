@@ -1,15 +1,39 @@
 import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminPageHeader } from "@/components/admin/admin-ui";
+import { updateFeatureFlagAction } from "@/app/admin/actions/operations";
 import { requireAdminSession } from "@/lib/admin/auth";
 import { getProductResourcesAdminData } from "@/lib/admin/data";
-import { deleteContentCategoryAction, saveContentCategoryAction, updateProductFeatureAction } from "./actions";
+import { deleteContentCategoryAction, saveContentCategoryAction, updateDashboardModuleAction, updateProductFeatureAction } from "./actions";
 
 type FeatureRow = { key: string; name: string; description: string; feature_group: string; audience: string; status: string; visibility: string; enabled: boolean; requires_provider_call: boolean; provider: string; dependencies: string[]; estimated_credit_cost: number; limits: Record<string, number>; updated_at: string; updated_by: string | null };
 type CategoryRow = { id: string; slug: string; name: string; description: string; keywords: string[]; seed_hashtags: string[]; excluded_terms: string[]; language: string; country: string; enabled: boolean; visible: boolean; refresh_minutes: number; position: number };
+type DashboardModuleRow = { key: string; title: string; description: string; icon: string; chart_type: string; enabled: boolean; visible: boolean; access_level: string; status: string; display_order: number; requires_ai: boolean; requires_authentication: boolean; requires_premium: boolean; configuration: { minimumData?: number; dependencies?: string[] }; updated_at: string; updated_by: string | null };
+type DashboardFlagRow = { id: string; key: string; name: string; enabled: boolean };
 
 const groupLabels: Record<string, string> = { profile: "Análise de perfil", category: "Descoberta por categoria", trending: "Tendências", audio: "Áudios" };
 const statusLabels: Record<string, string> = { disabled: "Desativado", development: "Desenvolvimento", beta: "Beta", active: "Produção" };
 const audienceLabels: Record<string, string> = { public: "Público", free: "Gratuito", premium: "Premium", admin: "Administrativo" };
+
+function DashboardModuleEditor({ module }: { module: DashboardModuleRow }) {
+  return <details className="admin-resource-item">
+    <summary>
+      <span className={`admin-resource-state ${module.enabled && module.visible ? "is-enabled" : ""}`} aria-label={module.enabled && module.visible ? "Habilitado e visível" : "Indisponível"} />
+      <div className="admin-resource-title"><strong>{module.title}</strong><small>{module.key} · {module.chart_type}</small></div>
+      <div className="admin-resource-badges"><span data-tone={module.status}>{statusLabels[module.status] || module.status}</span><span>{audienceLabels[module.access_level] || module.access_level}</span>{module.requires_ai && <span>Usa IA</span>}{module.requires_premium && <span data-tone="cost">Premium</span>}</div>
+      <div className="admin-resource-metrics"><span><b>{module.display_order}</b> ordem</span><span><b>{module.configuration.minimumData ?? 1}</b> dados mínimos</span></div><i aria-hidden="true">⌄</i>
+    </summary>
+    <div className="admin-resource-editor">
+      <div className="admin-resource-description"><p>{module.description}</p><dl><div><dt>Tipo de gráfico</dt><dd>{module.chart_type}</dd></div><div><dt>Última alteração</dt><dd>{new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(module.updated_at))}</dd></div><div><dt>Responsável</dt><dd>{module.updated_by || "Seed do sistema"}</dd></div></dl></div>
+      <AdminActionForm action={updateDashboardModuleAction} className="admin-form admin-resource-form" submitLabel="Salvar módulo">
+        <input type="hidden" name="key" value={module.key} />
+        <fieldset><legend>Conteúdo e organização</legend><label>Título<input name="title" defaultValue={module.title} minLength={3} maxLength={120} required /></label><label>Descrição<input name="description" defaultValue={module.description} maxLength={500} /></label><div><label>Ícone<input name="icon" defaultValue={module.icon} minLength={2} maxLength={40} required /></label><label>Ordem<input name="displayOrder" type="number" min={0} max={10000} defaultValue={module.display_order} /></label><label>Dados mínimos<input name="minimumData" type="number" min={1} max={100} defaultValue={module.configuration.minimumData ?? 1} /></label></div></fieldset>
+        <fieldset><legend>Disponibilidade e acesso</legend><div><label>Estado<select name="status" defaultValue={module.status}><option value="disabled">Desativado</option><option value="development">Desenvolvimento</option><option value="beta">Beta</option><option value="active">Produção</option></select></label><label>Acesso<select name="accessLevel" defaultValue={module.access_level}><option value="public">Público</option><option value="free">Gratuito com conta</option><option value="premium">Premium</option><option value="admin">Administrativo</option></select></label><label>Habilitado<select name="enabled" defaultValue={String(module.enabled)}><option value="false">Não</option><option value="true">Sim</option></select></label><label>Visível<select name="visible" defaultValue={String(module.visible)}><option value="false">Não</option><option value="true">Sim</option></select></label></div></fieldset>
+        <fieldset><legend>Requisitos e dependências</legend><div><label>Requer IA<select name="requiresAI" defaultValue={String(module.requires_ai)}><option value="false">Não</option><option value="true">Sim</option></select></label><label>Requer autenticação<select name="requiresAuthentication" defaultValue={String(module.requires_authentication)}><option value="false">Não</option><option value="true">Sim</option></select></label><label>Requer Premium<select name="requiresPremium" defaultValue={String(module.requires_premium)}><option value="false">Não</option><option value="true">Sim</option></select></label></div><label>Dependências<input name="dependencies" defaultValue={(module.configuration.dependencies ?? []).join(", ")} placeholder="Chaves separadas por vírgula" /></label></fieldset>
+        <label className="admin-critical-confirm">Confirmação para mudanças críticas<input name="confirmation" placeholder="Digite ATIVAR quando solicitado" autoComplete="off" /><small>Necessária ao publicar, ativar beta, exigir IA ou Premium, aumentar o mínimo de dados ou alterar dependências.</small></label>
+      </AdminActionForm>
+    </div>
+  </details>;
+}
 
 function FeatureEditor({ feature, interestCount }: { feature: FeatureRow; interestCount: number }) {
   return <details className="admin-resource-item">
@@ -57,11 +81,18 @@ export default async function ProductResourcesPage({ searchParams }: { searchPar
   const [data, filters] = await Promise.all([getProductResourcesAdminData(), searchParams]);
   const allFeatures = data.features as FeatureRow[];
   const categories = data.categories as CategoryRow[];
+  const dashboardModules = data.dashboardModules as DashboardModuleRow[];
+  const dashboardFlags = data.dashboardFlags as DashboardFlagRow[];
   const features = allFeatures.filter((feature) => (!filters.status || feature.status === filters.status) && (!filters.audience || feature.audience === filters.audience) && (!filters.enabled || String(feature.enabled) === filters.enabled));
   const totalInterest = Object.values(data.interestCounts).reduce((sum, count) => sum + count, 0);
   return <>
     <AdminPageHeader eyebrow="PRODUTO" title="Recursos do produto" description="Controle disponibilidade, acesso e limites sem perder a visão geral do catálogo." />
-    <div className="admin-stat-grid admin-resource-stats"><article className="admin-stat-card"><span>Recursos cadastrados</span><strong>{allFeatures.length}</strong><small>{allFeatures.filter((feature) => feature.enabled).length} habilitados</small></article><article className="admin-stat-card"><span>Em produção</span><strong>{allFeatures.filter((feature) => feature.status === "active").length}</strong><small>Recursos com estado ativo</small></article><article className="admin-stat-card"><span>Premium</span><strong>{allFeatures.filter((feature) => feature.audience === "premium").length}</strong><small>Sem cobrança nesta fase</small></article><article className="admin-stat-card"><span>Interesses registrados</span><strong>{totalInterest}</strong><small>Sinais deduplicados</small></article></div>
+    <div className="admin-stat-grid admin-resource-stats"><article className="admin-stat-card"><span>Recursos cadastrados</span><strong>{allFeatures.length}</strong><small>{allFeatures.filter((feature) => feature.enabled).length} habilitados</small></article><article className="admin-stat-card"><span>Módulos do dashboard</span><strong>{dashboardModules.length}</strong><small>{dashboardModules.filter((module) => module.enabled && module.visible).length} publicados</small></article><article className="admin-stat-card"><span>Premium</span><strong>{allFeatures.filter((feature) => feature.audience === "premium").length + dashboardModules.filter((module) => module.access_level === "premium").length}</strong><small>Recursos e módulos controlados</small></article><article className="admin-stat-card"><span>Interesses registrados</span><strong>{totalInterest}</strong><small>Sinais deduplicados</small></article></div>
+    <section className="admin-panel admin-resource-panel">
+      <div className="admin-panel-header"><div><h2>Dashboard Executivo</h2><p>Controle a composição visual exibida no início do resultado da análise.</p></div></div>
+      <div className="admin-dashboard-flags" aria-label="Flags do dashboard">{dashboardFlags.map((flag) => <AdminActionForm action={updateFeatureFlagAction} className="admin-dashboard-flag" submitLabel="Aplicar" key={flag.key}><input type="hidden" name="id" value={flag.id} /><span>{flag.name}<small>{flag.key}</small></span><select name="enabled" defaultValue={String(flag.enabled)} aria-label={`Estado de ${flag.name}`}><option value="true">Ativa</option><option value="false">Inativa</option></select></AdminActionForm>)}</div>
+      <div className="admin-resource-groups"><section><header><h3>Módulos visuais</h3><span>{dashboardModules.length}</span></header><div>{dashboardModules.map((module) => <DashboardModuleEditor key={module.key} module={module} />)}</div></section></div>
+    </section>
     <section className="admin-panel admin-resource-panel">
       <div className="admin-panel-header"><div><h2>Catálogo de recursos</h2><p>{features.length} de {allFeatures.length} recursos exibidos</p></div></div>
       <form className="admin-filter-form admin-resource-filters" method="get"><label>Estado<select name="status" defaultValue={filters.status || ""}><option value="">Todos</option><option value="development">Desenvolvimento</option><option value="beta">Beta</option><option value="active">Produção</option><option value="disabled">Desativado</option></select></label><label>Acesso<select name="audience" defaultValue={filters.audience || ""}><option value="">Todos</option><option value="public">Público</option><option value="free">Gratuito</option><option value="premium">Premium</option><option value="admin">Administrativo</option></select></label><label>Disponibilidade<select name="enabled" defaultValue={filters.enabled || ""}><option value="">Todos</option><option value="true">Habilitados</option><option value="false">Desabilitados</option></select></label><button className="admin-secondary-button" type="submit">Aplicar filtros</button></form>

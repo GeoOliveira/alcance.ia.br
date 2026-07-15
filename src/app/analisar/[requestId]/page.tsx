@@ -24,8 +24,10 @@ import { AnalysisTopPosts } from "@/components/analysis/analysis-top-posts";
 import { AnalysisUpgradeCta } from "@/components/analysis/analysis-upgrade-cta";
 import { AnalysisAIState } from "@/components/analysis/analysis-ai-state";
 import { AnalysisProductInsights } from "@/components/analysis/analysis-product-insights";
+import { AnalysisExecutiveDashboard } from "@/components/analysis/dashboard/analysis-executive-dashboard";
 import { generateAIAnalysisForRequest } from "@/lib/ai";
 import { getAnalysisById } from "@/lib/analysis/get-analysis-by-id";
+import { buildDashboardData } from "@/lib/analysis/dashboard/data";
 
 const cookieName = "alcance_anonymous_session";
 async function readAnalysis(requestId: string) {
@@ -56,13 +58,14 @@ export default async function Page({ params }: { params: Promise<{ requestId: st
     <Container>
       <AnalysisHeader analysis={analysis} />
       {(analysis.state === "partial" || analysis.state === "insufficient_data") && <div className="analysis-quality-banner" role="status"><strong>{analysis.state === "partial" ? "Resultado parcialmente concluído" : "Poucos dados disponíveis"}</strong><span>{analysis.statusMessage}</span></div>}
-      <AnalysisHeroSummary analysis={analysis} />
       <AnalysisSectionNav showAI={Boolean(analysis.aiAnalysisState)} showCompleteness={Boolean(advanced?.profileCompleteness)} showTrend={Boolean(advanced?.recentTrend)} showStructure={hasStructure} showPlan={Boolean(advanced?.actionPlan?.length)} />
+      {analysis.dashboardModules && <AnalysisExecutiveDashboard modules={analysis.dashboardModules} data={buildDashboardData(analysis)} requestId={requestId} />}
+      <AnalysisHeroSummary analysis={analysis} />
+      <AnalysisProfileOverview analysis={analysis} />
+      <AnalysisMetricsGrid metrics={analysis.metrics} />
       <AnalysisInsightsCard observations={analysis.observations} />
       {analysis.aiAnalysisState && <AnalysisAIState requestId={requestId} initialState={analysis.aiAnalysisState} analysis={analysis.aiAnalysis} visibility={analysis.aiAnalysisVisibility} />}
       {advanced && <AnalysisProfileCompleteness metrics={advanced} requestId={requestId} />}
-      <AnalysisProfileOverview analysis={analysis} />
-      <AnalysisMetricsGrid metrics={analysis.metrics} />
       {advanced && <AnalysisEngagementDiagnostics metrics={advanced} requestId={requestId} />}
       {advanced?.recentTrend && <AnalysisRecentTrend trend={advanced.recentTrend} requestId={requestId} />}
       <AnalysisConsistencyCard analysis={analysis} regularity={advanced?.publishingRegularity} requestId={requestId} />
