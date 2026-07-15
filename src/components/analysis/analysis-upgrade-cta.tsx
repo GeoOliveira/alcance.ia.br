@@ -1,2 +1,13 @@
 import { AnalyticsLink } from "@/components/analytics/analytics-link";
-export function AnalysisUpgradeCta({ requestId }: { requestId: string }) { return <><section className="analysis-future"><span className="eyebrow">EM DESENVOLVIMENTO</span><h2>Uma camada mais inteligente está a caminho.</h2><p>Análise avançada da bio, recomendações personalizadas, ideias de conteúdo e sugestões com IA serão adicionadas futuramente. Nada disso foi simulado neste resultado.</p><div>{["Análise avançada da bio", "Recomendações personalizadas", "Ideias de conteúdo", "Sugestões de melhoria"].map((item) => <span key={item}>{item}</span>)}</div></section><section className="analysis-final-cta"><div><span className="eyebrow">ACOMPANHE A EVOLUÇÃO</span><h2>Quer salvar análises e acompanhar os próximos recursos?</h2><p>Registre seu interesse gratuitamente. Você já recebeu os dados disponíveis antes deste convite.</p><AnalyticsLink className="button button-light" href="/cadastro" eventName="analysis_final_cta_clicked" properties={{ request_id: requestId, cta_location: "analysis_final" }}>Criar conta gratuita →</AnalyticsLink></div></section></>; }
+import { AnalysisIcon } from "./analysis-icon";
+
+const features = [
+  ["Análise da bio", "Leitura de clareza, proposta e chamada para ação."],
+  ["Recomendações", "Próximas ações personalizadas para o perfil."],
+  ["Ideias de conteúdo", "Sugestões alinhadas aos sinais observados."],
+  ["Sugestões de legendas", "Apoio para estruturar textos futuros."],
+];
+
+export function AnalysisUpgradeCta({ requestId }: { requestId: string }) {
+  return <><section className="analysis-future" id="proximos-passos"><div className="analysis-future-inner"><div className="analysis-future-copy"><span className="eyebrow">INSIGHTS INTELIGENTES · EM BREVE</span><h2>Uma camada de inteligência preparada para o próximo passo.</h2><p>Esses recursos ainda não estão ativos e nenhum conteúdo de IA foi simulado nesta análise.</p></div><div className="analysis-ai-grid">{features.map(([title, description]) => <article key={title}><span><AnalysisIcon name="spark" /></span><div><small>EM BREVE</small><h3>{title}</h3><p>{description}</p></div></article>)}</div></div></section><section className="analysis-final-cta"><div><span className="eyebrow">ACOMPANHE SUA EVOLUÇÃO</span><h2>Salve esta análise e acompanhe a evolução do seu perfil.</h2><p>Em breve você poderá acessar histórico, recomendações e insights personalizados.</p><div className="analysis-cta-benefits"><span>Histórico organizado</span><span>Novos recursos primeiro</span><span>Cadastro gratuito</span></div><AnalyticsLink className="button button-light" href="/cadastro" eventName="analysis_final_cta_clicked" properties={{ request_id: requestId, cta_location: "analysis_final" }}>Criar conta gratuita <span aria-hidden="true">→</span></AnalyticsLink></div></section></>;
+}
