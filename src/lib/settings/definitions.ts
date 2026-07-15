@@ -70,6 +70,9 @@ export const settingSchemas: Record<string, z.ZodType> = {
   "scrapecreators.posts_cache_minutes": z.number().int().min(1).max(1440),
   "scrapecreators.reels_cache_minutes": z.number().int().min(1).max(1440),
   "scrapecreators.post_details_cache_minutes": z.number().int().min(1).max(1440),
+  "product.discovery_daily_limit": z.number().int().min(0).max(10000),
+  "product.discovery_cache_minutes": z.number().int().min(30).max(10080),
+  "product.interest_capture_enabled": z.boolean(),
 };
 
 export function parseSettingInput(key: string, valueType: string, raw: string) {

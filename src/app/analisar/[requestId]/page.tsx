@@ -23,6 +23,7 @@ import { AnalysisSectionNav } from "@/components/analysis/analysis-section-nav";
 import { AnalysisTopPosts } from "@/components/analysis/analysis-top-posts";
 import { AnalysisUpgradeCta } from "@/components/analysis/analysis-upgrade-cta";
 import { AnalysisAIState } from "@/components/analysis/analysis-ai-state";
+import { AnalysisProductInsights } from "@/components/analysis/analysis-product-insights";
 import { generateAIAnalysisForRequest } from "@/lib/ai";
 import { getAnalysisById } from "@/lib/analysis/get-analysis-by-id";
 
@@ -67,6 +68,7 @@ export default async function Page({ params }: { params: Promise<{ requestId: st
       <AnalysisConsistencyCard analysis={analysis} regularity={advanced?.publishingRegularity} requestId={requestId} />
       <AnalysisContentFormatBreakdown metrics={analysis.metrics} diversity={advanced?.contentDiversity} performance={advanced?.formatPerformance} requestId={requestId} />
       {advanced && <AnalysisPublicationStructure metrics={advanced} requestId={requestId} />}
+      {analysis.productInsights && <AnalysisProductInsights insights={analysis.productInsights} requestId={requestId} />}
       <AnalysisTopPosts posts={analysis.topPosts} requestId={requestId} />
       {advanced?.actionPlan && <AnalysisActionPlan items={advanced.actionPlan} requestId={requestId} />}
       <AnalysisMethodology postsCount={analysis.posts.length} metrics={analysis.metrics} methodology={advanced?.methodology} advanced={advanced} requestId={requestId} />

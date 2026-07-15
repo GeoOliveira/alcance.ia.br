@@ -11,6 +11,8 @@ import { getAIRuntimeConfig } from "@/lib/ai/runtime-config";
 import { profileAnalysisOutputSchema } from "@/lib/ai/schemas/profile-analysis-schema";
 import { filterAIOutputByFeatures } from "@/lib/ai/guards/feature-filter";
 import { isOpenAIConfigured, isOpenAIEnvironmentEnabled } from "@/lib/ai/providers/openai/config";
+import { getFeatureAccessMap } from "@/lib/product-features/access";
+import { buildProfileProductInsights } from "@/lib/product-features/profile-insights";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export const getAnalysisById = cache(async (requestId: string, anonymousSessionId: string | undefined) => {
@@ -42,7 +44,12 @@ export const getAnalysisById = cache(async (requestId: string, anonymousSessionI
       if (aiState === "completed" && parsedAI.success && hasVisibleFeature) Object.assign(result, { ai_output: filterAIOutputByFeatures(parsedAI.data, runtime.flags, runtime.config), ai_visibility: runtime.config.publicVisibility });
     }
   }
-  return buildAnalysisViewModel(request, result);
+  const view = buildAnalysisViewModel(request, result);
+  if (view.profile && view.posts.length) {
+    const access = await getFeatureAccessMap({ isAuthenticated: Boolean(request.user_id) });
+    view.productInsights = buildProfileProductInsights(view.posts, view.profile.followersCount, access);
+  }
+  return view;
 });
 
 export async function getSafeAnalysisStatus(requestId: string, anonymousSessionId: string | undefined) {

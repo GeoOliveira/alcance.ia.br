@@ -475,6 +475,49 @@
 .analysis-methodology-facts { margin-block: 16px; }
 .analysis-confidence-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 14px 0; }
 .analysis-confidence-list span { border-radius: 99px; background: var(--analysis-highlight); padding: 5px 8px; color: var(--analysis-brand); font-size: 12px; }
+.analysis-hashtag-summary { display: grid; grid-template-columns: minmax(220px, .65fr) 1.35fr; gap: 14px; }
+.analysis-hashtag-summary > article,
+.analysis-reel-ranking,
+.analysis-audio-summary { border: 1px solid var(--analysis-border); border-radius: var(--analysis-radius); background: var(--analysis-surface); box-shadow: var(--analysis-shadow-sm); }
+.analysis-hashtag-summary > article { padding: 25px; }
+.analysis-hashtag-summary article > span,
+.analysis-reel-ranking header > span { color: var(--analysis-brand); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+.analysis-hashtag-summary article > strong { display: block; margin: 12px 0 7px; color: var(--analysis-brand-strong); font-size: 46px; }
+.analysis-hashtag-summary article > small { color: var(--analysis-muted); line-height: 1.55; }
+.analysis-hashtag-summary ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; padding: 0; list-style: none; }
+.analysis-hashtag-summary li { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 99px; background: var(--analysis-highlight); }
+.analysis-hashtag-summary li b { color: var(--analysis-brand-strong); font-size: 13px; }
+.analysis-hashtag-summary li span { color: var(--analysis-muted); font-size: 12px; }
+.analysis-hashtag-performance { margin-top: 18px; padding: 24px; border: 1px solid var(--analysis-border); border-radius: var(--analysis-radius); background: var(--analysis-surface); }
+.analysis-hashtag-performance h3 { margin: 0; font-size: 20px; }
+.analysis-hashtag-performance > p { margin: 7px 0 18px; color: var(--analysis-muted); font-size: 13px; }
+.analysis-hashtag-performance > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.analysis-hashtag-performance article { min-width: 0; padding: 15px; border-radius: 11px; background: var(--analysis-bg-soft); }
+.analysis-hashtag-performance article > strong,
+.analysis-hashtag-performance article > small { display: block; overflow-wrap: anywhere; }
+.analysis-hashtag-performance article > small { margin-top: 4px; color: var(--analysis-muted); }
+.analysis-hashtag-performance dl { display: grid; gap: 7px; margin: 13px 0 0; }
+.analysis-hashtag-performance dl > div { display: flex; justify-content: space-between; gap: 8px; }
+.analysis-hashtag-performance dt,
+.analysis-hashtag-performance dd { font-size: 12px; }
+.analysis-hashtag-performance dd { margin: 0; font-weight: 750; text-align: right; }
+.analysis-reel-rankings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.analysis-reel-ranking { min-width: 0; overflow: hidden; }
+.analysis-reel-ranking header { min-height: 115px; padding: 22px; border-bottom: 1px solid var(--analysis-border); }
+.analysis-reel-ranking header p { margin: 8px 0 0; color: var(--analysis-muted); font-size: 13px; line-height: 1.55; }
+.analysis-reel-ranking ol { display: grid; margin: 0; padding: 0; list-style: none; }
+.analysis-reel-ranking li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-width: 0; padding: 14px 18px; border-bottom: 1px solid var(--analysis-border); }
+.analysis-reel-ranking li:last-child { border-bottom: 0; }
+.analysis-reel-ranking li > b { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--analysis-highlight); color: var(--analysis-brand); font-size: 12px; }
+.analysis-reel-ranking li > div { display: grid; min-width: 0; gap: 4px; }
+.analysis-reel-ranking li strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-reel-ranking li small { color: var(--analysis-muted); font-size: 12px; line-height: 1.4; }
+.analysis-reel-ranking li a { color: var(--analysis-brand); text-decoration: none; }
+.analysis-ranking-empty { margin: 0; padding: 22px; color: var(--analysis-muted); font-size: 13px; line-height: 1.6; }
+.analysis-audio-summary { display: flex; flex-wrap: wrap; gap: 8px; padding: 22px; }
+.analysis-audio-summary > span { display: grid; gap: 3px; padding: 10px 13px; border-radius: 10px; background: var(--analysis-bg-soft); }
+.analysis-audio-summary b { font-size: 13px; }
+.analysis-audio-summary small { color: var(--analysis-muted); }
 
 @keyframes analysis-shimmer { to { background-position: -200% 0; } }
 
@@ -505,6 +548,8 @@
   .analysis-post-grid article:last-child { display: block; }
   .analysis-future-copy { max-width: 680px; }
   .analysis-trend-grid { grid-template-columns: 1fr; }
+  .analysis-reel-rankings { grid-template-columns: 1fr; }
+  .analysis-hashtag-performance > div { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -566,6 +611,7 @@
   .analysis-state-card { padding: 38px 20px; border-radius: 22px; }
   .analysis-state-actions { display: grid; }
   .analysis-completeness-grid,
+  .analysis-hashtag-summary,
   .analysis-criteria-card,
   .analysis-diagnostic-grid,
   .analysis-structure-grid,
