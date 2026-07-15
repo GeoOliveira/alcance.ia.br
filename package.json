@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "apify-client": "^2.23.4",
     "next": "16.2.10",
     "openai": "^6.47.0",
     "react": "19.2.4",

@@ -102,6 +102,7 @@ export async function updateFeatureFlagAction(_: ActionState, formData: FormData
   if (current.key === "resource_hashtags") { revalidateTag("resource-hashtags-config", "max"); revalidateTag("resource-hashtags-data", "max"); revalidatePath("/recursos/hashtags"); }
   if (current.key === "resource_trending_reels") { revalidateTag("resource-trending-reels-config", "max"); revalidateTag("resource-trending-reels-data", "max"); revalidatePath("/recursos/reels-em-alta"); }
   if (current.key === "resource_reels_by_category") { revalidateTag("resource-category-reels-config", "max"); revalidateTag("resource-category-reels-data", "max"); revalidatePath("/recursos/reels-por-categoria", "layout"); }
+  if (current.key.startsWith("resource_branded_content")) { revalidatePath("/recursos/conteudo-de-marca"); revalidatePath("/admin/recursos/branded_content_search"); }
   return success("Funcionalidade atualizada.");
 }
 

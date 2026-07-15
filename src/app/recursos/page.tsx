@@ -12,6 +12,7 @@ const resourceLinks: Partial<Record<string, { href: string; label: string }>> = 
   resource_hashtags: { href: "/recursos/hashtags", label: "Explorar hashtags" },
   resource_trending_reels: { href: "/recursos/reels-em-alta", label: "Ver Reels em alta" },
   resource_reels_by_category: { href: "/recursos/reels-por-categoria", label: "Explorar categorias" },
+  branded_content_search: { href: "/recursos/conteudo-de-marca", label: "Pesquisar parcerias" },
 };
 
 export default async function Page() {

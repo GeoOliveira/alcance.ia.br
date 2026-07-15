@@ -32,3 +32,8 @@ As configurações `ai.*` e as flags de IA são criadas desligadas pela migratio
 | `deterministic_action_plan` | motor de prioridades | ativa após 009 |
 
 As flags são lidas exclusivamente no servidor. Falha no banco usa fallback fechado. Um módulo não calculado não aparece na página nem deixa um link sem destino na navegação. Os módulos determinísticos não criam chamadas adicionais à ScrapeCreators.
+# Flags da Pesquisa de Conteúdo de Marca
+
+`resource_branded_content`, `resource_branded_content_pagination`, `resource_branded_content_dashboard`, `resource_branded_content_ai`, `resource_branded_content_history`, `resource_branded_content_export` e `resource_branded_content_premium_preview` começam desligadas. Elas são verificadas no servidor e não servem apenas para ocultação visual.
+
+As flags multiprovedor `provider_meta_branded_content`, `provider_apify_branded_content`, `branded_content_provider_fallback`, `branded_content_provider_comparison` e `branded_content_provider_health` também começam desligadas e impedem chamadas reais independentemente dos settings.

@@ -1,0 +1,1 @@
+export function ErrorState({ message }: { message: string }) { return <div className="branded-state branded-error" role="alert"><span aria-hidden="true">!</span><h2>Não foi possível concluir a pesquisa</h2><p>{message}</p></div>; }

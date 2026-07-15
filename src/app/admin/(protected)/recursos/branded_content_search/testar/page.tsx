@@ -1,0 +1,6 @@
+import Link from "next/link";
+import { AdminPageHeader } from "@/components/admin/admin-ui";
+import { BrandedContentSearch } from "@/components/branded-content/branded-content-search";
+import { requireAdminSession } from "@/lib/admin/auth";
+import { getBrandedContentRuntime } from "@/lib/meta/branded-content/runtime";
+export default async function TestPage(){await requireAdminSession("provider_poc.execute");const runtime=await getBrandedContentRuntime();return <><AdminPageHeader eyebrow="TESTE CONTROLADO" title="Testar pesquisa" description="Executa o modo administrativo atualmente selecionado, respeitando recurso, flags, limites, cache e ambiente."/><section className="admin-panel"><p><Link href="/admin/recursos/branded_content_search">← Voltar à configuração</Link></p><dl className="admin-details"><dt>Limite</dt><dd>{runtime.maximumResults}</dd><dt>Cache</dt><dd>{runtime.cacheMinutes} minutos</dd><dt>Disponibilidade</dt><dd>{runtime.enabled?"Ativa":"Bloqueada"}</dd></dl><BrandedContentSearch allowed={runtime.enabled&&["active","beta"].includes(runtime.status)} reason={runtime.unavailableMessage} dashboardEnabled={runtime.flags.resource_branded_content_dashboard} paginationEnabled={runtime.paginationEnabled} premiumPreview={false}/></section></>}

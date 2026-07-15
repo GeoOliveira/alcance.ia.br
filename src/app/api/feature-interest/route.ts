@@ -6,7 +6,7 @@ import { productFeatureKeys } from "@/lib/product-features/catalog";
 
 const sessionCookie = "alcance_anonymous_session";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const schema = z.object({ featureKey: z.enum(productFeatureKeys), source: z.enum(["resources_page", "analysis_result", "discovery_page"]) });
+const schema = z.object({ featureKey: z.enum(productFeatureKeys), source: z.enum(["resources_page", "analysis_result", "discovery_page", "branded_content_page"]) });
 
 export async function POST(request: NextRequest) {
   const limit = await checkRateLimit(request, "form-token");

@@ -1,0 +1,1 @@
+export function LoadingResults() { return <div className="branded-loading" aria-busy="true" aria-label="Pesquisando conteúdos"><span className="sr-only">Pesquisando conteúdos…</span>{[0,1,2].map((item) => <div key={item} />)}</div>; }

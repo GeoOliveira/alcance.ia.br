@@ -1,0 +1,27 @@
+"use server";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { authorizeAdminAction } from "@/lib/admin/auth";
+import { writeAudit } from "@/lib/admin/audit";
+import { createClient } from "@/lib/supabase/server";
+import type { ActionState } from "@/types/admin";
+import { fallbackErrorCodes } from "@/lib/branded-content/fallback-policy";
+import { metaBrandedContentProvider } from "@/lib/branded-content/providers/meta/adapter";
+import { apifyBrandedContentProvider } from "@/lib/branded-content/providers/apify/adapter";
+
+const schema = z.object({ mode: z.enum(["meta_only","apify_only","automatic_fallback","admin_compare"]), primary: z.enum(["meta_official","apify"]), fallback: z.enum(["meta_official","apify"]), fallbackEnabled: z.enum(["true","false"]), fallbackOnEmpty: z.enum(["true","false"]), metaEnabled: z.enum(["true","false"]), apifyEnabled: z.enum(["true","false"]), compareEnabled: z.enum(["true","false"]), apifyAllowPublic: z.enum(["true","false"]), maximumResults: z.coerce.number().int().min(1).max(500), apifyResultsLimit: z.coerce.number().int().min(1).max(500), metaCacheMinutes: z.coerce.number().int().min(1).max(10080), apifyCacheMinutes: z.coerce.number().int().min(1).max(10080), apifyDailyRunLimit: z.coerce.number().int().min(0).max(10000), errorCodes: z.string().max(1000), confirmation: z.literal("CONFIRMAR PROVEDOR") });
+const fail = (message: string): ActionState => ({ ok: false, message });
+export async function updateBrandedContentProviderAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  let session; try { session = await authorizeAdminAction("features.manage"); } catch { return fail("Somente o superadministrador pode alterar provedores."); }
+  if (session.profile.role !== "super_admin") return fail("Somente o superadministrador pode alterar provedores.");
+  const parsed = schema.safeParse(Object.fromEntries(formData)); if (!parsed.success) return fail("Revise os valores e digite CONFIRMAR PROVEDOR.");
+  const value = parsed.data; if (value.mode === "automatic_fallback" && value.primary === value.fallback) return fail("Principal e fallback devem ser diferentes.");
+  const errorCodes = value.errorCodes.split(",").map((item) => item.trim()).filter((item): item is typeof fallbackErrorCodes[number] => fallbackErrorCodes.includes(item as typeof fallbackErrorCodes[number])); if (!errorCodes.length) return fail("Selecione ao menos um código técnico elegível.");
+  const updates: Record<string, unknown> = { "branded_content.provider_mode": value.mode, "branded_content.primary_provider": value.primary, "branded_content.fallback_provider": value.fallback, "branded_content.fallback_enabled": value.fallbackEnabled === "true", "branded_content.fallback_on_empty": value.fallbackOnEmpty === "true", "branded_content.fallback_error_codes": errorCodes, "branded_content.maximum_results": value.maximumResults, "branded_content.meta_cache_minutes": value.metaCacheMinutes, "branded_content.apify_cache_minutes": value.apifyCacheMinutes, "branded_content.meta_enabled": value.metaEnabled === "true", "branded_content.apify_enabled": value.apifyEnabled === "true", "branded_content.compare_mode_enabled": value.compareEnabled === "true", "branded_content.apify_results_limit": value.apifyResultsLimit, "branded_content.apify_daily_run_limit": value.apifyDailyRunLimit, "branded_content.apify_allow_public_usage": value.apifyAllowPublic === "true" };
+  const supabase = await createClient(); const { data: beforeRows } = await supabase.from("app_settings").select("key,value").in("key", Object.keys(updates)); const before = Object.fromEntries((beforeRows || []).map((row) => [row.key, row.value]));
+  for (const [key, next] of Object.entries(updates)) { const { error } = await supabase.from("app_settings").update({ value: next, updated_by: session.userId }).eq("key", key); if (error) return fail("Não foi possível salvar todas as configurações. Verifique a migration local."); }
+  await writeAudit({ action: "branded_content_provider_configuration_changed", entityType: "branded_content_provider", entityId: "global", before, after: updates, metadata: { critical_confirmation: true } });
+  revalidatePath("/admin/recursos/branded_content_search"); revalidatePath("/recursos/conteudo-de-marca"); return { ok: true, message: "Configuração salva com auditoria. Flags e ambiente continuam sendo barreiras independentes." };
+}
+
+export async function runProviderHealthCheckAction():Promise<void>{const session=await authorizeAdminAction("provider_poc.execute");const supabase=await createClient();const flag=await supabase.from("feature_flags").select("enabled").eq("key","branded_content_provider_health").maybeSingle();if(flag.data?.enabled!==true) return;const started=Date.now();const checks=await Promise.all([metaBrandedContentProvider.healthCheck(),apifyBrandedContentProvider.healthCheck()]);for(const [index,check] of checks.entries()){await supabase.from("branded_content_provider_health").upsert({provider:index===0?"meta_official":"apify",checked_at:check.checkedAt,available:check.available,code:check.code,duration_ms:Date.now()-started,updated_by:session.userId},{onConflict:"provider"})}await writeAudit({action:"branded_content_provider_health_checked",entityType:"branded_content_provider",entityId:"all",after:{meta_available:checks[0].available,apify_available:checks[1].available}});revalidatePath("/admin/recursos/branded_content_search")}

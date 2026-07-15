@@ -1,0 +1,2 @@
+import { FeatureInterestButton } from "@/components/product-features/feature-interest-button";
+export function PremiumPreview() { return <div className="branded-state branded-premium"><span>Premium</span><h2>Pesquisa completa disponível no plano Premium</h2><p>A cobrança ainda não está ativa. Registre seu interesse para receber novidades quando o acesso for liberado.</p><FeatureInterestButton featureKey="branded_content_search" source="branded_content_page" /></div>; }
