@@ -10,6 +10,7 @@ const MAX_RESPONSE_BYTES = 2_000_000;
 const retryStatuses = new Set([500, 502, 503, 504]);
 
 export type ClientResponse = { body: unknown; status: number; durationMs: number; retries: number; requestId: string };
+export type ScrapeCreatorsEndpoint = ProviderEndpoint | "hashtag_search";
 
 function errorFor(status: number, endpoint: string, requestId: string, durationMs: number) {
   const common = [endpoint, requestId, status, durationMs] as const;
@@ -32,7 +33,7 @@ async function readJson(response: Response, endpoint: string, requestId: string,
   catch { throw new ScrapeCreatorsInvalidResponseError("invalid_response", "O fornecedor retornou JSON inválido.", false, endpoint, requestId, response.status, durationMs); }
 }
 
-export async function scrapeCreatorsFetch(config: ScrapeCreatorsConfig, endpoint: ProviderEndpoint, path: string, query: Record<string, string | undefined>, signal?: AbortSignal): Promise<ClientResponse> {
+export async function scrapeCreatorsFetch(config: ScrapeCreatorsConfig, endpoint: ScrapeCreatorsEndpoint, path: string, query: Record<string, string | undefined>, signal?: AbortSignal): Promise<ClientResponse> {
   const requestId = crypto.randomUUID(); let retries = 0; const overallStart = performance.now();
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const timeout = AbortSignal.timeout(config.timeoutMs); const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;

@@ -17,6 +17,7 @@ export type PublicHashtagItem = {
   popularity: HashtagPopularity;
   related: string[];
 };
+export type RecurringHashtagItem = { hashtag: string; occurrences: number; contentsFound: number; categories: string[]; trend: HashtagTrend };
 
 export type HashtagResourceConfig = {
   enabled: boolean;
@@ -92,6 +93,20 @@ export function filterPublicHashtags(items: PublicHashtagItem[], filters: Hashta
   const periodDays = Number(filters.period ?? "30");
   const cutoff = now.getTime() - (Number.isFinite(periodDays) ? periodDays : 30) * 86_400_000;
   return items.filter((item) => (!query || item.hashtag.includes(query) || item.related.some((related) => related.includes(query))) && (!filters.category || item.categorySlug === filters.category) && (!filters.trend || item.trend === filters.trend) && (!filters.popularity || item.popularity === filters.popularity) && new Date(item.updatedAt).getTime() >= cutoff).sort((a, b) => b.occurrences - a.occurrences || b.contentsFound - a.contentsFound || a.hashtag.localeCompare(b.hashtag, "pt-BR")).slice(0, Math.max(1, Math.min(100, maxItems)));
+}
+
+export function getMostRecurringHashtags(items: PublicHashtagItem[], limit = 8): RecurringHashtagItem[] {
+  const grouped = new Map<string, RecurringHashtagItem>();
+  for (const item of items) {
+    const current = grouped.get(item.hashtag) ?? { hashtag: item.hashtag, occurrences: 0, contentsFound: 0, categories: [], trend: item.trend };
+    current.occurrences += item.occurrences;
+    current.contentsFound += item.contentsFound;
+    if (!current.categories.includes(item.category)) current.categories.push(item.category);
+    if (item.trend === "alta") current.trend = "alta";
+    else if (item.trend === "baixa" && current.trend !== "alta") current.trend = "baixa";
+    grouped.set(item.hashtag, current);
+  }
+  return [...grouped.values()].sort((a, b) => b.occurrences - a.occurrences || b.contentsFound - a.contentsFound || a.hashtag.localeCompare(b.hashtag, "pt-BR")).slice(0, Math.max(1, Math.min(20, limit)));
 }
 
 async function readResourceConfig(): Promise<HashtagResourceConfig> {

@@ -6,6 +6,7 @@ import { authorizeAdminAction } from "@/lib/admin/auth";
 import { writeAudit } from "@/lib/admin/audit";
 import { createClient } from "@/lib/supabase/server";
 import { productFeatureKeys } from "@/lib/product-features/catalog";
+import { collectHashtagDiscovery } from "@/lib/product-features/hashtag-discovery";
 import { dashboardModuleKeys } from "@/lib/analysis/dashboard/catalog";
 import type { ActionState } from "@/types/admin";
 
@@ -27,7 +28,26 @@ const featureSchema = z.object({
 });
 const categorySchema = z.object({ id: z.string().uuid().or(z.literal("")), slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80), name: z.string().trim().min(2).max(80), description: z.string().trim().max(500), keywords: z.string().max(500), seedHashtags: z.string().max(500), excludedTerms: z.string().max(500), language: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/), country: z.string().regex(/^[A-Z]{2}$/), refreshMinutes: z.coerce.number().int().min(60).max(10080), position: z.coerce.number().int().min(0).max(10000), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]) });
 const dashboardModuleSchema = z.object({ key: z.enum(dashboardModuleKeys), title: z.string().trim().min(3).max(120), description: z.string().trim().max(500), icon: z.string().trim().min(2).max(40), displayOrder: z.coerce.number().int().min(0).max(10000), minimumData: z.coerce.number().int().min(1).max(100), accessLevel: z.enum(["public", "free", "premium", "admin"]), status: z.enum(["development", "beta", "active", "disabled"]), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]), requiresAI: z.enum(["true", "false"]), requiresAuthentication: z.enum(["true", "false"]), requiresPremium: z.enum(["true", "false"]), dependencies: z.string().max(1000) });
+const hashtagCollectionSchema = z.object({ categoryLimit: z.coerce.number().int().min(1).max(10), seedsPerCategory: z.coerce.number().int().min(1).max(3), period: z.enum(["last-week", "last-month", "last-year"]), confirmation: z.literal("COLETAR HASHTAGS") });
 const fail = (message: string): ActionState => ({ ok: false, message });
+
+export async function runHashtagDiscoveryAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  let session;
+  try { session = await authorizeAdminAction("features.manage"); } catch { return fail("Esta ação exige permissão de superadministrador."); }
+  const parsed = hashtagCollectionSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return fail("Revise os limites e digite COLETAR HASHTAGS para confirmar.");
+  try {
+    const summary = await collectHashtagDiscovery({ createdBy: session.userId, categoryLimit: parsed.data.categoryLimit, seedsPerCategory: parsed.data.seedsPerCategory, period: parsed.data.period });
+    await writeAudit({ action: "hashtag_discovery_run", entityType: "product_feature", entityId: "category_hashtag_discovery", after: { selectedCategories: summary.selectedCategories, completedCategories: summary.completedCategories, partialCategories: summary.partialCategories, failedCategories: summary.failedCategories, providerCalls: summary.providerCalls, hashtagsPublished: summary.hashtagsPublished, period: parsed.data.period } });
+    revalidateTag("resource-hashtags-data", "max");
+    revalidatePath("/recursos/hashtags");
+    revalidatePath("/admin/recursos");
+    if (!summary.selectedCategories) return fail(`Nenhuma categoria foi coletada. O limite diário é ${summary.dailyLimit} e restam ${summary.remainingCalls} chamadas.`);
+    return { ok: summary.failedCategories === 0, message: `${summary.hashtagsPublished} hashtags publicadas em ${summary.completedCategories + summary.partialCategories} categoria(s), usando ${summary.providerCalls} chamada(s). Restam ${summary.remainingCalls} hoje.${summary.failedCategories ? ` ${summary.failedCategories} categoria(s) falharam.` : ""}` };
+  } catch (error) {
+    return fail(error instanceof Error ? error.message : "Não foi possível concluir a coleta de hashtags.");
+  }
+}
 
 export async function updateDashboardModuleAction(_: ActionState, formData: FormData): Promise<ActionState> {
   let session;
