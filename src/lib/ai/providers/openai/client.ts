@@ -10,14 +10,27 @@ import { OpenAIAuthenticationError, OpenAIProviderError, OpenAIRateLimitError, O
 import { parseOpenAIProfileAnalysis } from "./response-parser";
 import { normalizeOpenAIUsage } from "./usage";
 
+function hasContentRefusal(output: unknown): boolean {
+  if (!Array.isArray(output)) return false;
+  return output.some((item) => {
+    if (!item || typeof item !== "object" || !("content" in item) || !Array.isArray(item.content)) return false;
+    return item.content.some((content: unknown) => content && typeof content === "object" && "type" in content && content.type === "refusal");
+  });
+}
+
 export function createOpenAIProvider(executionId?: string): AIProvider {
   const config = getOpenAIConfig(executionId);
   const client = new OpenAI({ apiKey: config.apiKey, timeout: config.timeoutMs, maxRetries: 0 });
   return { async generateProfileAnalysis(input, signal) {
     const started = performance.now(); const prompt = buildProfileAnalysisPrompt(input);
     try {
-      const response = await client.responses.parse({ model: config.model, instructions: prompt.instructions, input: prompt.input, max_output_tokens: config.maxOutputTokens, store: false, metadata: { execution_id: executionId || "unknown", prompt_version: PROFILE_ANALYSIS_PROMPT_VERSION, schema_version: AI_ANALYSIS_SCHEMA_VERSION }, text: { format: zodTextFormat(profileAnalysisOutputSchema, "alcance_ai_profile_analysis") } }, { signal });
-      const durationMs = Math.round(performance.now() - started); const output = parseOpenAIProfileAnalysis(response.output_parsed, executionId, durationMs);
+      const response = await client.responses.parse({ model: config.model, instructions: prompt.instructions, input: prompt.input, max_output_tokens: config.maxOutputTokens, reasoning: { effort: config.reasoningEffort }, store: false, metadata: { execution_id: executionId || "unknown", prompt_version: PROFILE_ANALYSIS_PROMPT_VERSION, schema_version: AI_ANALYSIS_SCHEMA_VERSION }, text: { format: zodTextFormat(profileAnalysisOutputSchema, "alcance_ai_profile_analysis") } }, { signal });
+      const durationMs = Math.round(performance.now() - started);
+      const output = parseOpenAIProfileAnalysis(response.output_parsed, executionId, durationMs, {
+        status: response.status,
+        incompleteReason: response.incomplete_details?.reason,
+        hasRefusal: hasContentRefusal(response.output),
+      });
       return { output, model: config.model, providerResponseId: response.id || null, durationMs, usage: normalizeOpenAIUsage(response.usage) };
     } catch (error) {
       const duration = Math.round(performance.now() - started);
