@@ -40,7 +40,16 @@ export async function generateAIAnalysisForRequest(requestId: string, options: G
     await admin.from("ai_analysis_runs").insert({ ...runBase, status: "failed", error_code: code, error_message: message, completed_at: new Date().toISOString() });
   };
   if (confidenceRank[input.analysisContext.dataConfidence] < confidenceRank[runtime.config.minimumAnalysisConfidence]) { await recordTerminalFailure("insufficient_confidence", "A amostra não atingiu a confiança mínima para interpretação por IA."); return { ok: false as const, code: "insufficient_confidence", executionId }; }
-  if (!options.bypassCache) { const cutoff = new Date(Date.now() - runtime.config.cacheHours * 3_600_000).toISOString(); const { data: cached } = await admin.from("ai_analysis_runs").select("id,status,output_snapshot,created_at").eq("analysis_result_id", row.id).eq("input_hash", inputHash).eq("model", model).eq("prompt_version", PROFILE_ANALYSIS_PROMPT_VERSION).eq("schema_version", AI_ANALYSIS_SCHEMA_VERSION).eq("status", "completed").gte("created_at", cutoff).order("created_at", { ascending: false }).limit(1).maybeSingle(); if (cached) { await admin.from("ai_analysis_runs").update({ cache_hit: true }).eq("id", cached.id); return { ok: true as const, cached: true, executionId: cached.id, output: cached.output_snapshot }; } }
+  if (!options.bypassCache) {
+    const cutoff = new Date(Date.now() - runtime.config.cacheHours * 3_600_000).toISOString();
+    const { data: cached } = await admin.from("ai_analysis_runs").select("output_snapshot").eq("input_hash", inputHash).eq("model", model).eq("prompt_version", PROFILE_ANALYSIS_PROMPT_VERSION).eq("schema_version", AI_ANALYSIS_SCHEMA_VERSION).eq("status", "completed").gte("created_at", cutoff).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const cachedOutput = profileAnalysisOutputSchema.safeParse(cached?.output_snapshot);
+    if (cachedOutput.success) {
+      const completedAt = new Date().toISOString();
+      const cacheRun = await admin.from("ai_analysis_runs").insert({ ...runBase, status: "completed", output_snapshot: cachedOutput.data, cache_hit: true, duration_ms: 0, completed_at: completedAt, validation_status: "passed", consistency_status: "passed" });
+      if (!cacheRun.error) return { ok: true as const, cached: true, executionId, output: cachedOutput.data };
+    }
+  }
   const today = new Date(); today.setUTCHours(0, 0, 0, 0); const { count: executionsToday } = await admin.from("ai_analysis_runs").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString()); if ((executionsToday || 0) >= runtime.config.dailyRequestLimit) { await recordTerminalFailure("daily_limit", "O limite diário de interpretações por IA foi atingido."); return { ok: false as const, code: "daily_limit", executionId }; }
   const insert = await admin.from("ai_analysis_runs").insert({ ...runBase, status: "processing" });
   if (insert.error) return { ok: false as const, code: "deduplicated" };
