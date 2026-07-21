@@ -3,7 +3,8 @@ begin;
 alter table public.product_features drop constraint if exists product_features_feature_group_check;
 alter table public.product_features add constraint product_features_feature_group_check check (feature_group in ('profile','category','trending','audio','research'));
 alter table public.product_features drop constraint if exists product_features_provider_check;
-alter table public.product_features add constraint product_features_provider_check check (provider in ('internal','scrapecreators','meta'));
+-- `apify` may already exist in environments where provider preparation preceded this migration.
+alter table public.product_features add constraint product_features_provider_check check (provider in ('internal','scrapecreators','meta','apify')) not valid;
 alter table public.product_features drop constraint if exists product_features_status_check;
 alter table public.product_features add constraint product_features_status_check check (status in ('development','beta','active','disabled','maintenance'));
 

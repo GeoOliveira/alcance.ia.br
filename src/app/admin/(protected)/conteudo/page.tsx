@@ -1,2 +1,2 @@
 import { redirect } from "next/navigation";
-export default function ContentIndexPage() { redirect("/admin/conteudo/home"); }
+export default function ContentIndexPage() { redirect("/admin/conteudo/paginas"); }

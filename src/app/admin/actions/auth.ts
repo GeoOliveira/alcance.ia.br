@@ -1,7 +1,9 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { resolveAuthOrigin } from "@/lib/admin/auth-origin";
 import { loginSchema, passwordRecoverySchema, safeAdminRedirect, updatePasswordSchema } from "@/lib/admin/validation";
 import type { ActionState } from "@/types/admin";
 
@@ -37,7 +39,7 @@ export async function requestPasswordResetAction(_: ActionState, formData: FormD
   if (!parsed.success) return { ok: false, message: "Informe um e-mail válido." };
   try {
     const supabase = await createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const siteUrl = resolveAuthOrigin((await headers()).get("origin"), process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000");
     await supabase.auth.resetPasswordForEmail(parsed.data.email, {
       redirectTo: `${siteUrl}/admin/auth/callback?next=/admin/recuperar-senha`,
     });

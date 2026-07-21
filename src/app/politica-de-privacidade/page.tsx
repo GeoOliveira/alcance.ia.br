@@ -1,20 +1,6 @@
-import type { Metadata } from "next";
+import { generatePageMetadata } from "@/lib/seo/generate-page-metadata";
 import { LegalPageLayout } from "@/components/legal/legal-page-layout";
-import { siteConfig } from "@/config/site";
-
-export const metadata: Metadata = { title: "Política de Privacidade", description: "Como a Alcance IA trata dados pessoais e protege a privacidade.", alternates: { canonical: "/politica-de-privacidade" } };
-
-export default function Page() {
-  return <LegalPageLayout title="Política de Privacidade" intro="Entenda quais dados podem ser tratados, para quais finalidades e como exercer seus direitos conforme a LGPD.">
-    <h2>1. Sobre esta política</h2><p>Esta política descreve o tratamento de dados no site alcance.ia.br e nas experiências da Alcance IA. A identificação jurídica definitiva do controlador será preenchida antes da operação comercial: {siteConfig.legal.companyName}, {siteConfig.legal.document}.</p>
-    <h2>2. Dados que podemos tratar</h2><ul><li>dados informados voluntariamente, como nome, e-mail e mensagens de contato;</li><li>identificador ou URL pública do perfil do Instagram;</li><li>parâmetros de campanha, página de entrada, referência e preferências de cookies;</li><li>dados públicos do perfil e dados autorizados pelo usuário, somente quando as integrações futuras estiverem disponíveis;</li><li>dados técnicos mínimos para segurança, prevenção de abuso e funcionamento do serviço.</li></ul><p>Não solicitamos nem armazenamos a senha do Instagram.</p>
-    <h2>3. Finalidades e bases legais</h2><p>Os dados podem ser usados para atender solicitações, prestar e melhorar a experiência, responder contatos, cumprir obrigações legais, prevenir fraude e enviar comunicações opcionais. As bases legais podem incluir execução de procedimentos preliminares, legítimo interesse, cumprimento de obrigação e consentimento, conforme o contexto.</p>
-    <h2>4. Cookies e analytics</h2><p>Cookies essenciais podem operar sem consentimento quando necessários. Google Analytics 4, Microsoft Clarity e as métricas da Vercel só são carregados após consentimento analítico. Formulários são mascarados no Clarity e eventos não incluem nome, e-mail, mensagem ou perfil do Instagram. Ferramentas de marketing permanecem inativas. A revogação interrompe novos envios, sem apagar automaticamente dados já recebidos pelos provedores.</p>
-    <h2>5. Compartilhamento e operadores</h2><p>Dados podem ser tratados por provedores essenciais, como Vercel e Supabase, e futuramente por serviços de e-mail e analytics escolhidos. Alguns provedores podem realizar tratamento internacional, com salvaguardas contratuais e técnicas adequadas.</p>
-    <h2>6. Retenção e segurança</h2><p>Mantemos dados pelo período necessário às finalidades, obrigações legais e defesa de direitos. Solicitações anônimas possuem prazo de expiração configurado. Aplicamos controles de acesso, validação no servidor, registros mínimos e segregação de segredos, sem afirmar segurança absoluta.</p>
-    <h2>7. Inteligência artificial e dados de terceiros</h2><p>Recursos opcionais de IA interpretam métricas já calculadas a partir de dados públicos. Antes do envio, limitamos a amostra e removemos e-mails, telefones, URLs completas, menções de terceiros e identificadores técnicos desnecessários. Não enviamos chaves, cookies, IP, credenciais, respostas brutas da fonte social nem dados administrativos. A chamada usa o parâmetro técnico de não armazenamento disponível, e a Alcance IA guarda apenas o pacote sanitizado, a saída estruturada e metadados operacionais pelos prazos configurados. Resultados podem conter imprecisões, não substituem o Instagram Insights e não garantem desempenho.</p>
-    <h2>8. Seus direitos</h2><p>Você pode solicitar confirmação, acesso, correção, anonimização, portabilidade quando aplicável, informação sobre compartilhamento, revisão de consentimento e exclusão, observadas hipóteses legais de retenção.</p>
-    <h2 id="contato-legal">9. Contato</h2><p>Solicitações podem ser enviadas pela página de contato, com o assunto “Privacidade e dados”, ou para {siteConfig.contactEmail}. Encarregado(a): {siteConfig.legal.privacyOfficer}.</p>
-    <h2>10. Pesquisa de Conteúdo de Marca</h2><p>Podemos registrar temporariamente a conta pública pesquisada, um hash da consulta, período, plataforma, fonte técnica, status, quantidade, custo estimado e duração para limite de uso, segurança e diagnóstico. Não armazenamos tokens, mídia, resposta bruta nem URLs autenticadas e não enviamos esses resultados a analytics externo; a retenção operacional prevista é de 30 dias.</p>
-  </LegalPageLayout>;
-}
+import { EditableLegalContent } from "@/components/legal/editable-legal-content";
+import { getPageContent } from "@/lib/content/page-content";
+export function generateMetadata() { return generatePageMetadata("privacy_policy"); }
+export default async function Page(){const content=await getPageContent("privacy_policy");return <LegalPageLayout title={content.title} intro={content.intro}><EditableLegalContent value={content.body}/></LegalPageLayout>}

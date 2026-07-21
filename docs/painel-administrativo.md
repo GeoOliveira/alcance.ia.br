@@ -121,3 +121,6 @@ npm run build
 4. Exigir MFA/AAL2 para funções privilegiadas.
 5. Criar testes de integração contra um Supabase local descartável.
 6. Definir retenção e exportação segura dos logs de auditoria.
+# Painel administrativo
+
+O grupo **Conteúdo** reúne SEO de páginas, FAQ e campos da Home. O dashboard usa somente dados registrados e configuração já disponível, sem health checks caros durante a renderização. Consulte `gerenciamento-seo-admin.md`, `menu-admin-conteudo.md` e `melhorias-dashboard-admin.md` para a operação atual.

@@ -5,13 +5,12 @@ import { z } from "zod";
 import { authorizeAdminAction } from "@/lib/admin/auth";
 import { writeAudit } from "@/lib/admin/audit";
 import { createClient } from "@/lib/supabase/server";
-import { productFeatureKeys } from "@/lib/product-features/catalog";
 import { collectHashtagDiscovery } from "@/lib/product-features/hashtag-discovery";
 import { dashboardModuleKeys } from "@/lib/analysis/dashboard/catalog";
 import type { ActionState } from "@/types/admin";
 
 const featureSchema = z.object({
-  key: z.enum(productFeatureKeys),
+  key: z.string().trim().min(1).max(100).regex(/^[a-z0-9_]+$/),
   audience: z.enum(["public", "free", "premium", "admin"]),
   status: z.enum(["development", "beta", "active", "disabled", "maintenance"]),
   visibility: z.enum(["hidden", "preview", "full"]),
@@ -37,11 +36,32 @@ const featureSchema = z.object({
   historyEnabled: z.enum(["true", "false"]).optional(),
   beta: z.enum(["true", "false"]).optional(),
   unavailableMessage: z.string().trim().max(300).optional(),
+  messageEnabled: z.enum(["true", "false"]).optional(),
+  copyEnabled: z.enum(["true", "false"]).optional(),
+  openLinkEnabled: z.enum(["true", "false"]).optional(),
+  shareEnabled: z.enum(["true", "false"]).optional(),
+  shortenerEnabled: z.enum(["true", "false"]).optional(),
+  messageMaxCharacters: z.coerce.number().int().min(1).max(2000).optional(),
 });
 const categorySchema = z.object({ id: z.string().uuid().or(z.literal("")), slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80), name: z.string().trim().min(2).max(80), description: z.string().trim().max(500), keywords: z.string().max(500), seedHashtags: z.string().max(500), excludedTerms: z.string().max(500), language: z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/), country: z.string().regex(/^[A-Z]{2}$/), refreshMinutes: z.coerce.number().int().min(60).max(10080), position: z.coerce.number().int().min(0).max(10000), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]) });
 const dashboardModuleSchema = z.object({ key: z.enum([...dashboardModuleKeys, "branded_content_chart_types", "branded_content_chart_timeline", "branded_content_chart_partners", "branded_content_chart_creators"]), title: z.string().trim().min(3).max(120), description: z.string().trim().max(500), icon: z.string().trim().min(2).max(40), displayOrder: z.coerce.number().int().min(0).max(10000), minimumData: z.coerce.number().int().min(1).max(100), accessLevel: z.enum(["public", "free", "premium", "admin"]), status: z.enum(["development", "beta", "active", "disabled"]), enabled: z.enum(["true", "false"]), visible: z.enum(["true", "false"]), requiresAI: z.enum(["true", "false"]), requiresAuthentication: z.enum(["true", "false"]), requiresPremium: z.enum(["true", "false"]), dependencies: z.string().max(1000) });
 const hashtagCollectionSchema = z.object({ categoryLimit: z.coerce.number().int().min(1).max(10), seedsPerCategory: z.coerce.number().int().min(1).max(3), period: z.enum(["last-week", "last-month", "last-year"]), confirmation: z.literal("COLETAR HASHTAGS") });
 const fail = (message: string): ActionState => ({ ok: false, message });
+const safeDependencyKey = /^[a-z0-9_]+$/;
+const featureFlagByProductFeature: Record<string, string> = {
+  whatsapp_link_manager: "resource_whatsapp_link_manager",
+  whatsapp_manager_google_login: "whatsapp_manager_google_login",
+  whatsapp_manager_google_one_tap: "whatsapp_manager_google_one_tap",
+  whatsapp_manager_create_link: "whatsapp_manager_create_link",
+  whatsapp_manager_shortener: "encurta_integration",
+  whatsapp_manager_qr_code: "whatsapp_manager_qr_code",
+  whatsapp_manager_click_metrics: "whatsapp_manager_click_metrics",
+  whatsapp_manager_edit_link: "whatsapp_manager_edit_link",
+  whatsapp_manager_expiration: "whatsapp_manager_expiration",
+  whatsapp_manager_export: "whatsapp_manager_export",
+  whatsapp_manager_custom_slug: "whatsapp_manager_custom_slug",
+  whatsapp_manager_advanced_analytics: "whatsapp_manager_advanced_analytics",
+};
 
 export async function runHashtagDiscoveryAction(_: ActionState, formData: FormData): Promise<ActionState> {
   let session;
@@ -90,28 +110,41 @@ export async function updateProductFeatureAction(_: ActionState, formData: FormD
   let session;
   try { session = await authorizeAdminAction("features.manage"); } catch { return fail("Esta ação exige permissão de superadministrador."); }
   const parsed = featureSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return fail("Revise o estado, o acesso e os limites informados.");
+  if (!parsed.success) return fail(`Não foi possível validar este recurso: ${parsed.error.issues[0]?.message || "revise os campos informados"}.`);
   const supabase = await createClient();
   const { data: current } = await supabase.from("product_features").select("key,audience,status,visibility,enabled,requires_provider_call,estimated_credit_cost,dependencies,limits,metadata").eq("key", parsed.data.key).maybeSingle();
   if (!current) return fail("Recurso não encontrado no catálogo persistido.");
   const enabled = parsed.data.enabled === "true";
-  const dependencies = [...new Set(parsed.data.dependencies.split(",").map((item) => item.trim()).filter((item) => productFeatureKeys.includes(item as (typeof productFeatureKeys)[number])))];
+  const dependencies = [...new Set(parsed.data.dependencies.split(",").map((item) => item.trim()).filter((item) => safeDependencyKey.test(item)))].slice(0, 20);
   const currentLimits = current.limits as Record<string, number>;
   const currentMetadata = current.metadata && typeof current.metadata === "object" ? current.metadata as Record<string, unknown> : {};
   const automaticRefresh = parsed.data.automaticRefresh === undefined ? currentMetadata.automaticRefresh === true : parsed.data.automaticRefresh === "true";
   const indexable = parsed.data.indexable === undefined ? currentMetadata.indexable !== false : parsed.data.indexable === "true";
   const enabledCountries = parsed.data.enabledCountries === undefined ? currentMetadata.enabledCountries : [...new Set(parsed.data.enabledCountries.split(",").map((item) => item.trim().toUpperCase()).filter((item) => /^[A-Z]{2}$/.test(item)))].slice(0, 30);
   const enabledLanguages = parsed.data.enabledLanguages === undefined ? currentMetadata.enabledLanguages : [...new Set(parsed.data.enabledLanguages.split(",").map((item) => item.trim()).filter((item) => /^[a-z]{2}(?:-[A-Z]{2})?$/.test(item)))].slice(0, 30);
-  const critical = (!enabled && current.enabled && current.visibility === "full") || (parsed.data.audience === "premium" && current.audience !== "premium") || (enabled && parsed.data.status === "beta" && (!current.enabled || current.status !== "beta")) || (enabled && !current.enabled && current.requires_provider_call) || parsed.data.dailyRequests > (currentLimits.dailyRequests ?? 0) || parsed.data.estimatedCreditCost > Number(current.estimated_credit_cost || 0) || dependencies.join("|") !== (current.dependencies || []).join("|") || (automaticRefresh && currentMetadata.automaticRefresh !== true) || (indexable && currentMetadata.indexable === false);
+  const critical = (!enabled && current.enabled && current.visibility === "full") || (parsed.data.audience === "premium" && current.audience !== "premium") || parsed.data.dailyRequests > (currentLimits.dailyRequests ?? 0) || parsed.data.estimatedCreditCost > Number(current.estimated_credit_cost || 0) || dependencies.join("|") !== (current.dependencies || []).join("|") || (automaticRefresh && currentMetadata.automaticRefresh !== true) || (indexable && currentMetadata.indexable === false);
   if (critical && formData.get("confirmation") !== "ATIVAR") return fail("Digite ATIVAR para confirmar um recurso com consumo externo ou acesso premium completo.");
   const limits = { ...currentLimits, maxItems: parsed.data.maxItems, dailyRequests: parsed.data.dailyRequests, cacheMinutes: parsed.data.cacheMinutes, ...(parsed.data.anonymousDailyRequests === undefined ? {} : { anonymousDailyRequests: parsed.data.anonymousDailyRequests }), ...(parsed.data.freeDailyRequests === undefined ? {} : { freeDailyRequests: parsed.data.freeDailyRequests }), ...(parsed.data.premiumDailyRequests === undefined ? {} : { premiumDailyRequests: parsed.data.premiumDailyRequests }), ...(parsed.data.adminDailyRequests === undefined ? {} : { adminDailyRequests: parsed.data.adminDailyRequests }) };
   const optionalBoolean = (value: "true" | "false" | undefined, current: unknown) => value === undefined ? current === true : value === "true";
-  const metadata = { ...currentMetadata, automaticRefresh, indexable, requiresAuthentication: optionalBoolean(parsed.data.requiresAuthentication, currentMetadata.requiresAuthentication), requiresPremium: optionalBoolean(parsed.data.requiresPremium, currentMetadata.requiresPremium), paginationEnabled: optionalBoolean(parsed.data.paginationEnabled, currentMetadata.paginationEnabled), aiSummaryEnabled: optionalBoolean(parsed.data.aiSummaryEnabled, currentMetadata.aiSummaryEnabled), exportEnabled: optionalBoolean(parsed.data.exportEnabled, currentMetadata.exportEnabled), historyEnabled: optionalBoolean(parsed.data.historyEnabled, currentMetadata.historyEnabled), beta: optionalBoolean(parsed.data.beta, currentMetadata.beta), ...(parsed.data.unavailableMessage === undefined ? {} : { unavailableMessage: parsed.data.unavailableMessage }), ...(parsed.data.enabledCountries === undefined ? {} : { enabledCountries }), ...(parsed.data.enabledLanguages === undefined ? {} : { enabledLanguages }) };
+  const metadata = { ...currentMetadata, automaticRefresh, indexable, requiresAuthentication: optionalBoolean(parsed.data.requiresAuthentication, currentMetadata.requiresAuthentication), requiresPremium: optionalBoolean(parsed.data.requiresPremium, currentMetadata.requiresPremium), paginationEnabled: optionalBoolean(parsed.data.paginationEnabled, currentMetadata.paginationEnabled), aiSummaryEnabled: optionalBoolean(parsed.data.aiSummaryEnabled, currentMetadata.aiSummaryEnabled), exportEnabled: optionalBoolean(parsed.data.exportEnabled, currentMetadata.exportEnabled), historyEnabled: optionalBoolean(parsed.data.historyEnabled, currentMetadata.historyEnabled), beta: optionalBoolean(parsed.data.beta, currentMetadata.beta), messageEnabled: optionalBoolean(parsed.data.messageEnabled, currentMetadata.messageEnabled), copyEnabled: optionalBoolean(parsed.data.copyEnabled, currentMetadata.copyEnabled), openLinkEnabled: optionalBoolean(parsed.data.openLinkEnabled, currentMetadata.openLinkEnabled), shareEnabled: optionalBoolean(parsed.data.shareEnabled, currentMetadata.shareEnabled), shortenerEnabled: optionalBoolean(parsed.data.shortenerEnabled, currentMetadata.shortenerEnabled), ...(parsed.data.messageMaxCharacters === undefined ? {} : { messageMaxCharacters: parsed.data.messageMaxCharacters }), ...(parsed.data.unavailableMessage === undefined ? {} : { unavailableMessage: parsed.data.unavailableMessage }), ...(parsed.data.enabledCountries === undefined ? {} : { enabledCountries }), ...(parsed.data.enabledLanguages === undefined ? {} : { enabledLanguages }) };
   const next = { audience: parsed.data.audience, status: parsed.data.status, visibility: parsed.data.visibility, enabled, estimated_credit_cost: parsed.data.estimatedCreditCost, dependencies, limits, metadata, updated_by: session.userId };
   const { error } = await supabase.from("product_features").update(next).eq("key", current.key);
   if (error) return fail("Não foi possível atualizar o recurso.");
+  const linkedFlag = featureFlagByProductFeature[current.key];
+  if (linkedFlag) {
+    const { data: flag, error: flagReadError } = await supabase.from("feature_flags").select("id,enabled").eq("key", linkedFlag).maybeSingle();
+    if (flagReadError || !flag) {
+      await supabase.from("product_features").update({ audience: current.audience, status: current.status, visibility: current.visibility, enabled: current.enabled, estimated_credit_cost: current.estimated_credit_cost, dependencies: current.dependencies, limits: current.limits, metadata: current.metadata, updated_by: session.userId }).eq("key", current.key);
+      return fail("O recurso não foi alterado porque a flag operacional correspondente não foi encontrada.");
+    }
+    const { error: flagUpdateError } = await supabase.from("feature_flags").update({ enabled, updated_by: session.userId }).eq("id", flag.id);
+    if (flagUpdateError) {
+      await supabase.from("product_features").update({ audience: current.audience, status: current.status, visibility: current.visibility, enabled: current.enabled, estimated_credit_cost: current.estimated_credit_cost, dependencies: current.dependencies, limits: current.limits, metadata: current.metadata, updated_by: session.userId }).eq("key", current.key);
+      return fail("O recurso não foi alterado porque a flag operacional não pôde ser sincronizada.");
+    }
+  }
   await writeAudit({ action: "product_feature_updated", entityType: "product_feature", entityId: current.key, before: { audience: current.audience, status: current.status, visibility: current.visibility, enabled: current.enabled, estimated_credit_cost: current.estimated_credit_cost, dependencies: current.dependencies, limits: current.limits }, after: next });
-  revalidatePath("/admin/recursos"); revalidatePath("/admin/recursos/branded_content_search"); revalidatePath("/recursos"); revalidatePath("/recursos/conteudo-de-marca"); revalidatePath("/recursos/hashtags"); revalidatePath("/recursos/reels-em-alta"); revalidatePath("/recursos/reels-por-categoria", "layout"); revalidatePath("/analisar/[requestId]", "page");
+  revalidateTag("public-flags", "max"); revalidatePath("/admin/recursos"); revalidatePath("/admin/recursos/branded_content_search"); revalidatePath("/admin/recursos/whatsapp_link_manager"); revalidatePath("/admin/integracoes/google"); revalidatePath("/recursos"); revalidatePath("/recursos/conteudo-de-marca"); revalidatePath("/recursos/hashtags"); revalidatePath("/recursos/reels-em-alta"); revalidatePath("/recursos/reels-por-categoria", "layout"); revalidatePath("/recursos/gerador-link-whatsapp"); revalidatePath("/recursos/gerenciador-links-whatsapp"); revalidatePath("/entrar"); revalidatePath("/criar-conta"); revalidatePath("/painel", "layout"); revalidatePath("/analisar/[requestId]", "page");
   if (current.key === "resource_hashtags") { revalidateTag("resource-hashtags-config", "max"); revalidateTag("resource-hashtags-data", "max"); }
   if (current.key === "resource_trending_reels") { revalidateTag("resource-trending-reels-config", "max"); revalidateTag("resource-trending-reels-data", "max"); }
   if (current.key === "resource_reels_by_category") { revalidateTag("resource-category-reels-config", "max"); revalidateTag("resource-category-reels-data", "max"); }

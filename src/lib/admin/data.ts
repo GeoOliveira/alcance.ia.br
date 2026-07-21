@@ -30,24 +30,32 @@ function safeDate(value: string | undefined, endOfDay = false) {
 
 export async function getDashboardData() {
   const supabase = await createClient();
-  const [metrics, requests, contacts, audits] = await Promise.all([
+  const [metrics, requests, contacts, audits, users, features, providerHealth] = await Promise.all([
     supabase.rpc("admin_dashboard_metrics"),
     supabase.from("analysis_requests").select("id,instagram_username,status,created_at,utm_source,utm_campaign").order("created_at", { ascending: false }).limit(6),
     supabase.from("contact_messages").select("id,name,subject,status,created_at").order("created_at", { ascending: false }).limit(6),
     supabase.from("admin_audit_logs").select("id,action,entity_type,created_at,admin_role").order("created_at", { ascending: false }).limit(6),
+    supabase.from("admin_profiles").select("id", { count: "exact", head: true }).eq("is_active", true),
+    supabase.from("product_features").select("key,audience,status,enabled"),
+    supabase.from("branded_content_provider_health").select("provider,available,code,checked_at").order("checked_at", { ascending: false }).limit(4),
   ]);
   const aggregated = metrics.data as { counts?: Record<string, number>; by_status?: Record<string, number>; sources?: Record<string, number>; campaigns?: Record<string, number> } | null;
   return {
     counts: {
       today: aggregated?.counts?.today ?? 0, week: aggregated?.counts?.week ?? 0,
       pending: aggregated?.counts?.pending ?? 0, failed: aggregated?.counts?.failed ?? 0,
-      contacts: aggregated?.counts?.contacts ?? 0,
+      contacts: aggregated?.counts?.contacts ?? 0, users: users.count ?? 0,
+      completed: aggregated?.by_status?.completed ?? 0,
+      activeFeatures: (features.data || []).filter((item) => item.enabled).length,
+      premiumFeatures: (features.data || []).filter((item) => item.audience === "premium").length,
     },
     requests: requests.data || [], contacts: contacts.data || [], audits: audits.data || [],
     byStatus: aggregated?.by_status || {},
     sources: topFive(aggregated?.sources || {}),
     campaigns: topFive(aggregated?.campaigns || {}),
     operational: !metrics.error && Boolean(aggregated?.counts),
+    providerHealth: providerHealth.data || [],
+    resourcesAvailable: !features.error,
   };
 }
 function topFive(values: Record<string, number>) {

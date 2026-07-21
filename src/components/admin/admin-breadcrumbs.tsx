@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const labels: Record<string, string> = {
   solicitacoes: "Solicitações", contatos: "Contatos", conteudo: "Conteúdo", home: "Home",
-  faq: "Perguntas frequentes", configuracoes: "Configurações", funcionalidades: "Funcionalidades",
+  faq: "Perguntas e respostas", paginas: "Páginas e SEO", configuracoes: "Configurações", funcionalidades: "Funcionalidades",
   usuarios: "Usuários", auditoria: "Auditoria", perfil: "Meu perfil",
 };
 

@@ -1,0 +1,1 @@
+export default function PanelLoading(){return <div aria-label="Carregando painel"><div className="panel-heading"><div><span>CARREGANDO</span><h1>Preparando seus links…</h1></div></div><div className="panel-stats">{[1,2,3,4].map(item=><div key={item} className="panel-stat" style={{minHeight:120,opacity:.5}}/>)}</div></div>}

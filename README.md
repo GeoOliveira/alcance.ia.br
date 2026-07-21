@@ -126,8 +126,14 @@ Documentação:
 - [arquitetura e operação do painel](docs/painel-administrativo.md);
 - [aplicação segura da migration](docs/aplicacao-migrations-painel.md);
 - [matriz de permissões](docs/matriz-de-permissoes.md).
+- [gerenciamento de SEO](docs/gerenciamento-seo-admin.md);
+- [preparação do upload de imagens SEO](docs/upload-imagens-seo.md);
+- [menu de conteúdo](docs/menu-admin-conteudo.md);
+- [dashboard administrativo](docs/melhorias-dashboard-admin.md).
 
 O painel controla somente uma lista fechada de configurações, flags e conteúdos. Segredos continuam exclusivamente nas variáveis de ambiente.
+
+SEO de páginas públicas também usa catálogo fechado e fallback no código. A migration `202607160019_admin_seo_and_home_privacy.sql` deve ser revisada e aplicada manualmente. O upload permanece desabilitado até que o bucket `seo-images` e suas políticas sejam configurados com segurança.
 
 ## Publicação na Vercel
 
@@ -168,6 +174,10 @@ Há metadata por página, canônicas, Open Graph/Twitter, manifest, sitemap, rob
 - templates jurídicos exigem revisão profissional;
 - GA4 e Clarity dependem de configuração manual; pixels de marketing permanecem inativos.
 
+## Gerenciador de Links WhatsApp
+
+O recurso autenticado em `/painel` adiciona contas Supabase, criação de links curtos via Encurta.io, organização, QR Codes e uma base segura para métricas agregadas. A migration `202607200024_whatsapp_link_manager.sql` cria perfis, consentimentos, links, cache, atividade, índices, RLS, catálogo e flags. O recurso, Google e One Tap começam desligados e exigem ativação manual após homologação. Consulte `docs/gerenciador-links-whatsapp.md`, `docs/autenticacao-usuarios.md` e `docs/google-auth-configuracao.md`.
+
 ## Próximos passos recomendados
 
 1. Revisar textos e documentos jurídicos com profissionais responsáveis.
@@ -194,3 +204,6 @@ Hashtags e rankings independentes de Reels usam o snapshot já armazenado da an�
 ### Pesquisa de Conteúdo de Marca
 
 A rota `/recursos/conteudo-de-marca` usa um serviço interno `server-only` com adaptadores para Meta oficial e Apify. O padrão permanece `meta_only`; Apify, fallback, comparação, paginação, dashboard, IA, histórico e exportação começam desativados. Consulte [arquitetura](docs/arquitetura-provedores-conteudo-de-marca.md), [integração Apify](docs/integracao-apify-brand-collaboration.md), [fallback](docs/fallback-conteudo-de-marca.md), [custos](docs/custos-apify-conteudo-de-marca.md) e [requisitos da Meta](docs/meta-branded-content-requisitos.md).
+## Encurtador de links do WhatsApp
+
+A integração privada com o Encurta.io é server-to-server, permanece desativada por padrão e exige URL HTTPS explícita, Bearer, HMAC e flags por nível de acesso. Consulte `docs/integracao-encurta-io.md` e `docs/encurta-io-configuracao.md` antes de configurar Preview ou produção.

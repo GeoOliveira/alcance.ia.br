@@ -12,14 +12,17 @@ const primaryItems: NavigationItem[] = [
   { href: "/admin", label: "Visão geral", permission: "dashboard.view" },
   { href: "/admin/solicitacoes", label: "Solicitações", permission: "analysis.view" },
   { href: "/admin/contatos", label: "Contatos", permission: "contacts.view" },
-  { href: "/admin/conteudo/home", label: "Conteúdo", permission: "content.manage" },
-  { href: "/admin/conteudo/faq", label: "Perguntas frequentes", permission: "faq.manage" },
   { href: "/admin/configuracoes", label: "Configurações", permission: "settings.manage" },
   { href: "/admin/funcionalidades", label: "Funcionalidades", permission: "features.manage" },
   { href: "/admin/recursos", label: "Recursos do produto", permission: "features.manage" },
   { href: "/admin/categorias", label: "Categorias", permission: "features.manage" },
 ];
+const contentItems: NavigationItem[] = [
+  { href: "/admin/conteudo/paginas", label: "Páginas e SEO", permission: "seo.manage" },
+  { href: "/admin/conteudo/faq", label: "Perguntas e respostas", permission: "faq.manage" },
+];
 const integrationItems: NavigationItem[] = [
+  { href: "/admin/integracoes/google", label: "Google", permission: "settings.manage" },
   { href: "/admin/integracoes/scrapecreators", label: "ScrapeCreators", permission: "provider_poc.view" },
   { href: "/admin/integracoes/openai", label: "OpenAI", permission: "ai_integration.view" },
   { href: "/admin/integracoes/turnstile", label: "Turnstile", permission: "settings.manage" },
@@ -33,16 +36,20 @@ const secondaryItems: NavigationItem[] = [
 
 function NavigationLinks({ role, onNavigate }: { role: AdminRole; onNavigate?: () => void }) {
   const pathname = usePathname();
-  const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const contentActive = pathname.startsWith("/admin/conteudo");
+  const integrationActive = pathname.startsWith("/admin/integracoes");
+  const [contentOpen, setContentOpen] = useState(contentActive);
+  const [integrationsOpen, setIntegrationsOpen] = useState(integrationActive);
   const links = (items: NavigationItem[]) => items.filter((item) => hasPermission(role, item.permission)).map((item) => {
     const active = item.href === "/admin" ? pathname === item.href : pathname.startsWith(item.href);
     return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>;
   });
   const integrations = integrationItems.filter((item) => hasPermission(role, item.permission));
-  const integrationActive = pathname.startsWith("/admin/integracoes");
+  const content = contentItems.filter((item) => hasPermission(role, item.permission));
   return <nav aria-label="Administração">
     {links(primaryItems)}
-    {integrations.length > 0 && <div className="admin-nav-group"><button type="button" className="admin-nav-parent" aria-expanded={integrationsOpen} data-active={integrationActive} onClick={() => setIntegrationsOpen((value) => !value)}><span>Integrações</span><i aria-hidden="true">⌄</i></button>{integrationsOpen && <div className="admin-nav-children"><Link href="/admin/integracoes" aria-current={pathname === "/admin/integracoes" ? "page" : undefined} onClick={onNavigate}>Visão geral</Link>{integrations.map((item) => <Link key={item.href} href={item.href} aria-current={pathname.startsWith(item.href) ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>)}</div>}</div>}
+    {content.length > 0 && <div className="admin-nav-group"><button type="button" className="admin-nav-parent" aria-expanded={contentOpen} data-active={contentActive} onClick={() => setContentOpen((value) => !value)}><span><b aria-hidden="true">▤</b> Conteúdo</span><i aria-hidden="true">⌄</i></button>{contentOpen && <div className="admin-nav-children">{content.map((item) => <Link key={item.href} href={item.href} aria-current={pathname.startsWith(item.href) ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>)}</div>}</div>}
+    {integrations.length > 0 && <div className="admin-nav-group"><button type="button" className="admin-nav-parent" aria-expanded={integrationsOpen} data-active={integrationActive} onClick={() => setIntegrationsOpen((value) => !value)}><span><b aria-hidden="true">⌘</b> Integrações</span><i aria-hidden="true">⌄</i></button>{integrationsOpen && <div className="admin-nav-children"><Link href="/admin/integracoes" aria-current={pathname === "/admin/integracoes" ? "page" : undefined} onClick={onNavigate}>Visão geral</Link>{integrations.map((item) => <Link key={item.href} href={item.href} aria-current={pathname.startsWith(item.href) ? "page" : undefined} onClick={onNavigate}>{item.label}</Link>)}</div>}</div>}
     {links(secondaryItems)}
   </nav>;
 }
