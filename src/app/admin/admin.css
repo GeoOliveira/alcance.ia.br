@@ -62,3 +62,8 @@
 @media(max-width:1050px){.admin-google-content-grid{grid-template-columns:1fr}.admin-google-flags-panel .admin-dashboard-flags{grid-template-columns:1fr 1fr}.admin-google-flags-panel .admin-dashboard-flag{grid-template-columns:minmax(0,1fr) auto auto}.admin-google-flags-panel .admin-dashboard-flag button{grid-column:auto;width:auto}}
 @media(max-width:760px){.admin-google-readiness{grid-template-columns:auto 1fr}.admin-google-readiness>.admin-status{grid-column:2;justify-self:start}.admin-google-values-grid,.admin-google-flags-panel .admin-dashboard-flags{grid-template-columns:1fr}.admin-google-flags-panel .admin-dashboard-flag{grid-template-columns:1fr auto}.admin-google-flags-panel .admin-dashboard-flag>span{grid-column:1/-1}.admin-google-flags-panel .admin-dashboard-flag button{grid-column:auto}.admin-google-page .admin-panel{padding:18px}}
 @media(max-width:480px){.admin-google-readiness{grid-template-columns:1fr}.admin-google-readiness>.admin-status{grid-column:1}.admin-google-security{grid-template-columns:1fr}.admin-google-flags-panel .admin-dashboard-flag{grid-template-columns:1fr}.admin-google-flags-panel .admin-dashboard-flag select,.admin-google-flags-panel .admin-dashboard-flag button{width:100%}}
+
+/* SEO visível por página e prévia da imagem de compartilhamento */
+.admin-page-seo-section{margin:0 0 18px}
+.admin-social-preview>div{background-color:#dceadd;background-position:center;background-size:cover}
+.admin-seo-image-preview{aspect-ratio:1200/630;margin-top:15px;border:1px solid #d9e3dc;border-radius:11px;background-color:#edf3ee;background-position:center;background-size:cover}

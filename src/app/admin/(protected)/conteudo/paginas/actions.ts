@@ -5,7 +5,7 @@ import { authorizeAdminAction } from "@/lib/admin/auth";
 import { writeAudit } from "@/lib/admin/audit";
 import { createClient } from "@/lib/supabase/server";
 import { getCatalogPage } from "@/lib/seo/page-catalog";
-import { pageSeoFormSchema } from "@/lib/seo/page-seo-schema";
+import { pageSeoFormSchema, seoImageSchema } from "@/lib/seo/page-seo-schema";
 import { generatePageSeo } from "@/lib/ai/seo/generate-page-seo";
 import { seoGenerationRequestSchema, type SeoGenerationOutput } from "@/lib/ai/seo/seo-generation-schema";
 import type { ActionState } from "@/types/admin";
@@ -92,19 +92,36 @@ export async function savePageSeoAction(_: ActionState, formData: FormData): Pro
   });
   if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message || "Revise os campos de SEO." };
   const page = getCatalogPage(parsed.data.pageKey);
+  const imageValue = formData.get("seoImage");
+  const image = imageValue instanceof File && imageValue.size > 0 ? imageValue : null;
+  if (image) {
+    const imageResult = seoImageSchema.safeParse({ name: image.name, type: image.type, size: image.size });
+    if (!imageResult.success) return { ok: false, message: "Use uma imagem JPG, PNG ou WebP de até 2 MB." };
+  }
   const aiGuidance = String(formData.get("aiGuidance") || "").trim();
   if (aiGuidance.length > 2000) return { ok: false, message: "As orientações para IA devem ter no máximo 2.000 caracteres." };
   const supabase = await createClient();
   const { data: before } = await supabase.from("page_seo_settings").select("meta_title,meta_description,meta_keywords,og_title,og_description,og_image_url,canonical_url,indexable,follow_links").eq("page_key", page.key).maybeSingle();
+  let uploadedImage: { path: string; url: string } | null = null;
+  if (image) {
+    const extension = image.type === "image/jpeg" ? "jpg" : image.type === "image/png" ? "png" : "webp";
+    const path = `${page.key}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from("seo-images").upload(path, image, { contentType: image.type, cacheControl: "31536000", upsert: false });
+    if (uploadError) return { ok: false, message: "Não foi possível enviar a imagem SEO. Confirme se o armazenamento está configurado." };
+    uploadedImage = { path, url: supabase.storage.from("seo-images").getPublicUrl(path).data.publicUrl };
+  }
   const next = {
     page_key: page.key, route: page.route, meta_title: parsed.data.metaTitle,
     meta_description: parsed.data.metaDescription, meta_keywords: parsed.data.metaKeywords,
     og_title: parsed.data.ogTitle, og_description: parsed.data.ogDescription,
-    og_image_url: parsed.data.ogImageUrl, canonical_url: parsed.data.canonicalUrl,
+    og_image_url: uploadedImage?.url || parsed.data.ogImageUrl, canonical_url: parsed.data.canonicalUrl,
     indexable: parsed.data.indexable, follow_links: parsed.data.followLinks, updated_by: session.userId,
   };
   const { error } = await supabase.from("page_seo_settings").upsert(next, { onConflict: "page_key" });
-  if (error) return { ok: false, message: "Não foi possível salvar. Confirme se a migration de SEO foi aplicada." };
+  if (error) {
+    if (uploadedImage) await supabase.storage.from("seo-images").remove([uploadedImage.path]);
+    return { ok: false, message: "Não foi possível salvar. Confirme se a migration de SEO foi aplicada." };
+  }
   const { error: briefError } = await supabase.from("page_seo_ai_briefs").upsert({ page_key: page.key, additional_guidance: aiGuidance, updated_by: session.userId }, { onConflict: "page_key" });
   if (briefError) return { ok: false, message: "O SEO foi salvo, mas as orientações da IA não. Confirme se a migration de geração SEO foi aplicada." };
   await writeAudit({ action: "page_seo_updated", entityType: "page_seo", entityId: page.key, before, after: { ...next, updated_by: undefined }, metadata: { route: page.route } });

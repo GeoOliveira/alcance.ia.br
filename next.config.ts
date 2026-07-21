@@ -10,12 +10,17 @@ function supabaseConnections() {
   }
 }
 
+function supabaseOrigin() {
+  try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || "").origin; }
+  catch { return ""; }
+}
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://accounts.google.com/gsi/client https://va.vercel-scripts.com https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms https://connect.facebook.net https://s.pinimg.com https://www.redditstatic.com https://challenges.cloudflare.com`,
   "script-src-attr 'none'",
   "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
-  "img-src 'self' data: blob: https://*.cdninstagram.com https://*.fbcdn.net https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://ct.pinterest.com https://alb.reddit.com https://www.clarity.ms",
+  `img-src 'self' data: blob: ${supabaseOrigin()} https://*.cdninstagram.com https://*.fbcdn.net https://www.google-analytics.com https://www.googletagmanager.com https://www.facebook.com https://ct.pinterest.com https://alb.reddit.com https://www.clarity.ms`.replace(/\s+/g, " "),
   "font-src 'self' data:",
   `connect-src 'self' ${supabaseConnections()} https://accounts.google.com/gsi/ https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://www.clarity.ms https://*.clarity.ms https://www.facebook.com https://connect.facebook.net https://ct.pinterest.com https://alb.reddit.com https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://accounts.google.com/gsi/ https://challenges.cloudflare.com",
@@ -30,6 +35,7 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  experimental: { serverActions: { bodySizeLimit: "3mb" } },
   images: { remotePatterns: [
     { protocol: "https", hostname: "**.cdninstagram.com" },
     { protocol: "https", hostname: "**.fbcdn.net" },
