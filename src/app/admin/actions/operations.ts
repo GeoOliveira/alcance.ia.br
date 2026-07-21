@@ -81,7 +81,7 @@ export async function updateSettingAction(_: ActionState, formData: FormData): P
   const { error } = await supabase.from("app_settings").update({ value: value.value, updated_by: session.userId }).eq("id", parsed.data.id).eq("key", parsed.data.key);
   if (error) return invalid("Não foi possível salvar a configuração.");
   await writeAudit({ action: current.key === "maintenance.enabled" ? "maintenance_setting_changed" : "setting_updated", entityType: "app_setting", entityId: current.key, before: { value: current.value }, after: { value: value.value } });
-  revalidateTag("public-settings", "max"); revalidatePath("/"); revalidatePath("/admin/configuracoes");
+  revalidateTag("public-settings", "max"); revalidateTag("google-auth-config", "max"); revalidatePath("/"); revalidatePath("/admin/configuracoes"); revalidatePath("/admin/integracoes/google"); revalidatePath("/entrar"); revalidatePath("/criar-conta");
   return success("Configuração salva. O cache público foi invalidado.");
 }
 
@@ -103,6 +103,7 @@ export async function updateFeatureFlagAction(_: ActionState, formData: FormData
   if (current.key === "resource_trending_reels") { revalidateTag("resource-trending-reels-config", "max"); revalidateTag("resource-trending-reels-data", "max"); revalidatePath("/recursos/reels-em-alta"); }
   if (current.key === "resource_reels_by_category") { revalidateTag("resource-category-reels-config", "max"); revalidateTag("resource-category-reels-data", "max"); revalidatePath("/recursos/reels-por-categoria", "layout"); }
   if (current.key.startsWith("resource_branded_content")) { revalidatePath("/recursos/conteudo-de-marca"); revalidatePath("/admin/recursos/branded_content_search"); }
+  if (current.key.startsWith("whatsapp_manager_google_")) { revalidatePath("/admin/integracoes/google"); revalidatePath("/entrar"); revalidatePath("/criar-conta"); }
   return success("Funcionalidade atualizada.");
 }
 
@@ -152,6 +153,21 @@ export async function deleteFaqAction(_: ActionState, formData: FormData): Promi
   await writeAudit({ action: "faq_deleted", entityType: "site_faq", entityId: parsed.data.id, before: current, after: null });
   revalidateTag("public-faqs", "max"); revalidatePath("/"); revalidatePath("/admin/conteudo/faq");
   return success("Pergunta excluída.");
+}
+
+export async function duplicateFaqAction(_: ActionState, formData: FormData): Promise<ActionState> {
+  let session;
+  try { session = await authorizeAdminAction("faq.manage"); } catch { return invalid("Você não possui permissão para duplicar perguntas."); }
+  const id = formData.get("id");
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return invalid();
+  const supabase = await createClient();
+  const { data: current } = await supabase.from("site_faqs").select("question,answer,position").eq("id", id).maybeSingle();
+  if (!current) return invalid("Pergunta não encontrada.");
+  const { data, error } = await supabase.from("site_faqs").insert({ question: `${current.question} (cópia)`.slice(0, 240), answer: current.answer, position: Math.min(current.position + 1, 10000), is_active: false, updated_by: session.userId }).select("id").single();
+  if (error || !data) return invalid("Não foi possível duplicar a pergunta.");
+  await writeAudit({ action: "faq_duplicated", entityType: "site_faq", entityId: data.id, after: { source_id: id, is_active: false } });
+  revalidatePath("/admin/conteudo/faq");
+  return success("Cópia criada como inativa.");
 }
 
 export async function createAdminProfileAction(_: ActionState, formData: FormData): Promise<ActionState> {

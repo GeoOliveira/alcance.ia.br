@@ -73,6 +73,14 @@ export const settingSchemas: Record<string, z.ZodType> = {
   "product.discovery_daily_limit": z.number().int().min(0).max(10000),
   "product.discovery_cache_minutes": z.number().int().min(30).max(10080),
   "product.interest_capture_enabled": z.boolean(),
+  "whatsapp_link.message_max_characters": z.number().int().min(1).max(2000),
+  "whatsapp_link_shortener.anonymous_daily_limit": z.number().int().min(0).max(1000),
+  "whatsapp_link_shortener.free_daily_limit": z.number().int().min(0).max(10000),
+  "whatsapp_link_shortener.premium_daily_limit": z.number().int().min(0).max(100000),
+  "whatsapp_link_shortener.admin_daily_limit": z.number().int().min(0).max(100000),
+  "whatsapp_link_shortener.fallback_enabled": z.boolean(),
+  "auth.google_client_id": z.string().trim().max(255).refine((value) => value === "" || /^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(value), "Informe um Client ID Web válido do Google."),
+  "auth.google_authorized_origins": z.array(z.string().url().refine((value) => { const url = new URL(value); return url.pathname === "/" && !url.search && !url.hash; }, "Informe apenas a origem, sem caminho, busca ou fragmento.")).max(20),
 };
 
 export function parseSettingInput(key: string, valueType: string, raw: string) {

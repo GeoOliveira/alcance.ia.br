@@ -16,6 +16,7 @@ const allowedProperties = new Set([
   "consent_category", "navigation_target", "analytics_enabled", "marketing_enabled",
   "section_id",
   "platform", "period_selected", "result_count", "cache_status", "status", "access_level",
+  "message_used",
   "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "referrer_domain",
 ]);
 const recentEvents = new Map<string, number>();

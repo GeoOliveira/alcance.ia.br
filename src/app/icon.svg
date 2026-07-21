@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Alcance IA">
+  <rect width="64" height="64" rx="15" fill="#295f49"/>
+  <path fill="#ffffff" d="M29.5 18C19.7 18 13 24.6 13 33s6.7 15 16.5 15c4.4 0 8.1-1.4 10.8-4.1V47H49V19h-8.7v3.1C37.6 19.4 33.9 18 29.5 18Zm2.1 22.2c-5.6 0-9.2-3-9.2-7.2s3.6-7.2 9.2-7.2 9.2 3 9.2 7.2-3.6 7.2-9.2 7.2Z"/>
+  <path fill="#d9f082" d="m50 8 1.9 4.1L56 14l-4.1 1.9L50 20l-1.9-4.1L44 14l4.1-1.9L50 8Z"/>
+</svg>

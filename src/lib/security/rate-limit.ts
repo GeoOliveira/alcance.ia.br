@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { integerFromEnv } from "./http";
 
-export type RateLimitRoute = "analysis" | "contact" | "signup" | "form-token";
+export type RateLimitRoute = "analysis" | "contact" | "signup" | "form-token" | "feature-interest" | "whatsapp-shortener";
 export type RateLimitResult = {
   allowed: boolean;
   available: boolean;
@@ -70,8 +70,10 @@ function policy(route: RateLimitRoute) {
     contact: { limit: 3, windowSeconds: 600 },
     signup: { limit: 4, windowSeconds: 600 },
     "form-token": { limit: 30, windowSeconds: 60 },
+    "feature-interest": { limit: 10, windowSeconds: 60 },
+    "whatsapp-shortener": { limit: 3, windowSeconds: 86_400 },
   }[route];
-  const prefix = route.replace("-", "_").toUpperCase();
+  const prefix = route.replaceAll("-", "_").toUpperCase();
   return {
     limit: integerFromEnv(`${prefix}_RATE_LIMIT_MAX`, defaults.limit, 1, 1000),
     windowSeconds: integerFromEnv(
@@ -92,7 +94,7 @@ export function requestIp(request: Request) {
   );
 }
 
-export async function requestFingerprint(request: Request) {
+async function fingerprint(value: string) {
   const secret = process.env.RATE_LIMIT_HASH_SECRET ||
     (process.env.NODE_ENV !== "production" ? "development-only-rate-limit-key" : "");
   if (!secret) return null;
@@ -104,14 +106,19 @@ export async function requestFingerprint(request: Request) {
     false,
     ["sign"],
   );
-  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(requestIp(request)));
+  const digest = await crypto.subtle.sign("HMAC", key, encoder.encode(value));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+export async function requestFingerprint(request: Request) {
+  return fingerprint(requestIp(request));
 }
 
 export async function checkRateLimit(
   request: Request,
   route: RateLimitRoute,
   store?: RateLimitStore,
+  override?: { limit: number; windowSeconds: number; identity?: string },
 ): Promise<RateLimitResult> {
   const selectedBackend = process.env.RATE_LIMIT_BACKEND ||
     (process.env.NODE_ENV === "production" ? "supabase" : "memory");
@@ -131,8 +138,8 @@ export async function checkRateLimit(
   }
 
   if (!selectedStore) return { allowed: false, available: false, retryAfter: 0 };
-  const { limit, windowSeconds } = policy(route);
-  const keyHash = await requestFingerprint(request);
+  const { limit, windowSeconds } = override ?? policy(route);
+  const keyHash = override?.identity ? await fingerprint(override.identity) : await requestFingerprint(request);
   if (!keyHash) return { allowed: false, available: false, retryAfter: 0 };
   return selectedStore.consume({
     keyHash,

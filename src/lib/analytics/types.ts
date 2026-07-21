@@ -59,6 +59,33 @@ export const analyticsEvents = [
   "branded_content_result_opened",
   "branded_content_premium_preview_viewed",
   "branded_content_interest_registered",
+  "whatsapp_generator_viewed",
+  "whatsapp_link_generated",
+  "whatsapp_link_copied",
+  "whatsapp_link_opened",
+  "whatsapp_link_shared",
+  "whatsapp_short_link_requested",
+  "whatsapp_short_link_created",
+  "whatsapp_short_link_failed",
+  "whatsapp_short_link_copied",
+  "whatsapp_short_link_opened",
+  "whatsapp_short_link_shared",
+  "whatsapp_short_link_retry",
+  "whatsapp_manager_landing_viewed",
+  "whatsapp_manager_signup_started",
+  "whatsapp_manager_signup_completed",
+  "whatsapp_manager_login_completed",
+  "whatsapp_manager_google_login_completed",
+  "whatsapp_manager_one_tap_completed",
+  "whatsapp_manager_link_created",
+  "whatsapp_manager_link_creation_failed",
+  "whatsapp_manager_link_copied",
+  "whatsapp_manager_link_shared",
+  "whatsapp_manager_qr_downloaded",
+  "whatsapp_manager_metrics_viewed",
+  "whatsapp_manager_link_edited",
+  "whatsapp_manager_link_disabled",
+  "whatsapp_manager_link_archived",
 ] as const;
 
 export type AnalyticsEvent = (typeof analyticsEvents)[number];
@@ -90,6 +117,7 @@ type CommonProperties = AttributionProperties & {
   cache_status?: "hit" | "miss";
   status?: string;
   access_level?: "public" | "free" | "premium" | "admin";
+  message_used?: boolean;
 };
 
 export type AnalyticsEventProperties = {

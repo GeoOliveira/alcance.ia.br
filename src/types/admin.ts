@@ -11,6 +11,8 @@ export const adminPermissions = [
   "contacts.manage",
   "contacts.export",
   "contacts.delete",
+  "seo.manage",
+  "seo.ai.generate",
   "content.manage",
   "faq.manage",
   "faq.delete",
@@ -64,6 +66,9 @@ export type AppSetting = {
   is_public: boolean;
   is_editable: boolean;
   validation_schema: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+  updated_by?: string | null;
 };
 
 export type FeatureFlag = {
@@ -74,4 +79,7 @@ export type FeatureFlag = {
   enabled: boolean;
   scope: "public" | "admin" | "internal";
   configuration: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+  updated_by?: string | null;
 };

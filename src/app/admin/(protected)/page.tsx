@@ -9,16 +9,32 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyl
 export default async function AdminDashboardPage() {
   const session = await requireAdminSession("dashboard.view");
   const data = await getDashboardData();
-  return <><AdminPageHeader eyebrow="OPERAÇÃO" title="Visão geral" description="Dados reais da operação, com consultas limitadas e sem métricas inventadas." />
+  const quickLinks = [
+    ["Editar páginas", "/admin/conteudo/paginas", "seo.manage"], ["Editar página inicial", "/admin/conteudo/paginas?pagina=home", "content.manage"],
+    ["Gerenciar FAQ", "/admin/conteudo/faq", "faq.manage"], ["Gerenciar recursos", "/admin/recursos", "features.manage"],
+    ["Ver análises", "/admin/solicitacoes", "analysis.view"], ["Ver auditoria", "/admin/auditoria", "audit.view"],
+  ] as const;
+  const health = [
+    ["Supabase", data.operational ? "Operacional" : "Atenção"],
+    ["ScrapeCreators", process.env.SCRAPECREATORS_API_KEY ? "Configurado" : "Não configurado"],
+    ["Apify", process.env.APIFY_API_TOKEN ? "Configurado" : "Não configurado"],
+    ["Meta", process.env.META_ACCESS_TOKEN ? "Configurado" : "Não configurado"],
+    ["OpenAI", process.env.OPENAI_API_KEY ? "Configurado" : "Não configurado"],
+    ["Analytics", process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID ? "Configurado" : "Não configurado"],
+  ];
+  return <><AdminPageHeader eyebrow="CENTRO DE OPERAÇÕES" title="Visão geral" description="Saúde, atividade e conteúdo em uma leitura rápida, usando somente dados já registrados." />
     {!data.operational && <p className="admin-note">Algumas métricas não estão disponíveis para sua função ou o banco respondeu parcialmente.</p>}
     <section className="admin-stat-grid" aria-label="Indicadores principais">
       <AdminStatCard label="Solicitações hoje" value={data.counts.today} />
-      <AdminStatCard label="Últimos 7 dias" value={data.counts.week} />
+      <AdminStatCard label="Análises concluídas" value={data.counts.completed} detail="Total registrado" />
       <AdminStatCard label="Solicitações pendentes" value={data.counts.pending} />
       <AdminStatCard label="Solicitações com erro" value={data.counts.failed} />
       <AdminStatCard label="Contatos não tratados" value={data.counts.contacts} />
-      <AdminStatCard label="Status do sistema" value={data.operational ? "Operacional" : "Atenção"} />
+      <AdminStatCard label="Usuários administrativos" value={data.counts.users} detail="Perfis ativos" />
+      <AdminStatCard label="Recursos ativos" value={data.counts.activeFeatures} detail={`${data.counts.premiumFeatures} premium`} />
+      <AdminStatCard label="Status geral" value={data.operational ? "Operacional" : "Atenção"} />
     </section>
+    <section className="admin-dashboard-strip"><article className="admin-panel"><div className="admin-panel-header"><div><h2>Saúde da plataforma</h2><p>Configuração local e últimos registros, sem chamadas pagas.</p></div></div><div className="admin-health-grid">{health.map(([name, status]) => <div key={name}><span className={`admin-health-dot ${status === "Operacional" || status === "Configurado" ? "is-ok" : status === "Atenção" ? "is-warning" : ""}`} /><strong>{name}</strong><small>{status}</small></div>)}</div></article><article className="admin-panel"><div className="admin-panel-header"><div><h2>Atalhos rápidos</h2><p>Ações disponíveis para sua função.</p></div></div><nav className="admin-quick-links" aria-label="Atalhos administrativos">{quickLinks.filter(([, , permission]) => hasPermission(session.profile.role, permission)).map(([label, href]) => <Link key={href} href={href}>{label}<span aria-hidden="true">→</span></Link>)}</nav></article></section>
     <section className="admin-grid-two"><DashboardPanel title="Últimas solicitações" href={hasPermission(session.profile.role, "analysis.view") ? "/admin/solicitacoes" : undefined}>
       {data.requests.length ? <table className="admin-table"><tbody>{data.requests.map((item) => <tr key={item.id}><td><Link href={`/admin/solicitacoes/${item.id}`}>@{item.instagram_username}</Link><br /><span className="admin-muted">{dateTime.format(new Date(item.created_at))}</span></td><td><AdminStatusBadge status={item.status} /></td></tr>)}</tbody></table> : <AdminEmptyState title="Nenhuma solicitação" message="Ainda não há registros para exibir." />}
     </DashboardPanel><DashboardPanel title="Últimas mensagens" href={hasPermission(session.profile.role, "contacts.view") ? "/admin/contatos" : undefined}>

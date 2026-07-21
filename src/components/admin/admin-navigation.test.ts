@@ -7,15 +7,19 @@ describe("admin integrations navigation", () => {
   const apify = readFileSync("src/app/admin/(protected)/integracoes/apify/page.tsx", "utf8");
   const turnstile = readFileSync("src/app/admin/(protected)/integracoes/turnstile/page.tsx", "utf8");
 
-  it("agrupa as integrações sob um menu fechado por padrão", () => {
+  it("agrupa integrações e conteúdo mantendo o grupo da rota atual aberto", () => {
     expect(navigation).toContain("admin-nav-group");
     expect(navigation).toContain('label: "ScrapeCreators"');
+    expect(navigation).toContain('href: "/admin/integracoes/google", label: "Google"');
     expect(navigation).toContain('label: "OpenAI"');
     expect(navigation).toContain('label: "Turnstile"');
     expect(navigation).toContain('label: "Apify"');
-    expect(navigation).toContain("const [integrationsOpen, setIntegrationsOpen] = useState(false)");
+    expect(navigation).toContain("const [integrationsOpen, setIntegrationsOpen] = useState(integrationActive)");
+    expect(navigation).toContain("const [contentOpen, setContentOpen] = useState(contentActive)");
+    expect(navigation).toContain('href: "/admin/conteudo/paginas"');
     expect(navigation).toContain("aria-expanded={integrationsOpen}");
     expect(navigation).toContain("integrationsOpen &&");
+    expect(navigation).not.toContain('href: "/admin/ferramentas", label: "Ferramentas"');
   });
 
   it("oferece uma central e não expõe valores secretos do Turnstile", () => {

@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const publicAdminPaths = ["/admin/login", "/admin/auth/callback", "/admin/recuperar-senha"];
+const publicUserPaths = ["/entrar", "/criar-conta", "/recuperar-senha", "/redefinir-senha", "/verifique-seu-email", "/auth/callback"];
 
 export async function updateAdminSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -49,6 +50,35 @@ export async function updateAdminSession(request: NextRequest) {
   return response;
 }
 
+export async function updateUserSession(request: NextRequest) {
+  let response = NextResponse.next({ request });
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const pathname = request.nextUrl.pathname;
+  const isPublic = publicUserPaths.some((path) => pathname.startsWith(path));
+  if (!url || !key) return isPublic ? response : userLoginRedirect(request);
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll: (items) => {
+        items.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        items.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return isPublic ? response : userLoginRedirect(request);
+  if (pathname === "/entrar" || pathname === "/criar-conta") {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/painel"; destination.search = "";
+    const redirectResponse = NextResponse.redirect(destination);
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  }
+  return response;
+}
+
 function loginRedirect(request: NextRequest) {
   const destination = request.nextUrl.clone();
   destination.pathname = "/admin/login";
@@ -56,5 +86,12 @@ function loginRedirect(request: NextRequest) {
   if (request.nextUrl.pathname !== "/admin") {
     destination.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
   }
+  return NextResponse.redirect(destination);
+}
+
+function userLoginRedirect(request: NextRequest) {
+  const destination = request.nextUrl.clone();
+  destination.pathname = "/entrar"; destination.search = "";
+  destination.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
   return NextResponse.redirect(destination);
 }

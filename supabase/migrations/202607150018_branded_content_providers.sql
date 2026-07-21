@@ -1,7 +1,7 @@
 begin;
 
 alter table public.product_features drop constraint if exists product_features_provider_check;
-alter table public.product_features add constraint product_features_provider_check check (provider in ('internal','scrapecreators','meta','multi'));
+alter table public.product_features add constraint product_features_provider_check check (provider in ('internal','scrapecreators','meta','apify','multi')) not valid;
 update public.product_features set provider='multi', description='Pesquisa conteúdos de marca por provedores integrados e resposta normalizada.' where key='branded_content_search';
 
 insert into public.app_settings (key,value,value_type,category,label,description,is_public,validation_schema) values

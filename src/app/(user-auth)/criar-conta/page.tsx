@@ -1,0 +1,9 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { AuthForm } from "@/components/auth/auth-form";
+import { GoogleIdentity } from "@/components/auth/google-identity";
+import { registerUserAction } from "../actions";
+import { getWhatsAppManagerRuntime } from "@/lib/whatsapp-manager/runtime";
+import { getGoogleAuthPublicConfig } from "@/lib/auth/google-config";
+export const metadata:Metadata={title:"Criar conta | Alcance IA",description:"Comece a gerenciar seus links do WhatsApp.",robots:{index:false,follow:false}};
+export default async function RegisterPage(){const[runtime,google]=await Promise.all([getWhatsAppManagerRuntime(),getGoogleAuthPublicConfig()]);if(!runtime.flags.whatsapp_manager_registration)return <main className="auth-notice"><h1>Cadastro indisponível</h1><p>Novos cadastros estão pausados no momento.</p><Link className="manager-primary" href="/entrar">Voltar para entrar</Link></main>;return <main className="auth-layout"><section className="auth-visual"><div><span>CONTA GRATUITA</span><h2>Um painel para cada conversa começar melhor.</h2><p>Crie links curtos, QR Codes e acompanhe cliques com os recursos disponíveis para sua conta.</p></div><div className="auth-mini-dashboard"><header><span>Primeiro link</span><span>Em minutos</span></header><strong>Número → link → QR Code</strong><small>Sem senha do WhatsApp</small></div></section><section className="auth-panel"><div className="auth-card"><span>COMECE AGORA</span><h1>Crie sua conta</h1><p>Comece a criar e gerenciar seus links do WhatsApp.</p><AuthForm action={registerUserAction} mode="register"/>{runtime.flags.whatsapp_manager_google_login?<><div className="auth-divider">ou crie com</div><GoogleIdentity enabled oneTap={runtime.flags.whatsapp_manager_google_one_tap} clientId={google.clientId}/></>:null}<p className="auth-switch">Já tem uma conta? <Link href="/entrar">Entrar</Link></p></div></section></main>}
