@@ -10,6 +10,16 @@ describe("rate limiting", () => {
     expect((await store.consume(input)).allowed).toBe(false);
   });
 
+  it("does not consume the quota again for the same idempotency key", async () => {
+    const store = new MemoryRateLimitStore();
+    const base = { keyHash: "a".repeat(64), route: "whatsapp-shortener" as const, limit: 2, windowSeconds: 60 };
+    const first = { ...base, idempotencyKeyHash: "b".repeat(64) };
+    expect((await store.consume(first)).allowed).toBe(true);
+    expect((await store.consume(first)).allowed).toBe(true);
+    expect((await store.consume({ ...base, idempotencyKeyHash: "c".repeat(64) })).allowed).toBe(true);
+    expect((await store.consume({ ...base, idempotencyKeyHash: "d".repeat(64) })).allowed).toBe(false);
+  });
+
   it("hashes the client address instead of returning it", async () => {
     const request = new Request("http://localhost", { headers: { "x-forwarded-for": "203.0.113.7" } });
     const fingerprint = await requestFingerprint(request);

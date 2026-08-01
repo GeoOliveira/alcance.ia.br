@@ -17,6 +17,15 @@ function createRequestId() {
   return `req_${crypto.randomUUID().replaceAll("-", "")}`;
 }
 
+function rateLimitMessage(retryAfterHeader: string | null) {
+  const retryAfter = Number(retryAfterHeader);
+  if (!Number.isFinite(retryAfter) || retryAfter <= 0) return "Você atingiu o limite diário de links curtos. Tente novamente mais tarde.";
+  const hours = Math.max(1, Math.ceil(retryAfter / 3600));
+  return hours === 1
+    ? "Você atingiu o limite diário de links curtos. Tente novamente em até 1 hora."
+    : `Você atingiu o limite diário de links curtos. Tente novamente em aproximadamente ${hours} horas.`;
+}
+
 export function GeneratorForm({ flags, messageMaxCharacters, accessLevel }: {
   flags: WhatsAppGeneratorFlags;
   messageMaxCharacters: number;
@@ -75,7 +84,9 @@ export function GeneratorForm({ flags, messageMaxCharacters, accessLevel }: {
       });
       const payload: unknown = await response.json().catch(() => null);
       if (!response.ok || !payload || typeof payload !== "object" || !("data" in payload)) {
-        const publicError = payload && typeof payload === "object" && "error" in payload
+        const publicError = response.status === 429
+          ? rateLimitMessage(response.headers.get("Retry-After"))
+          : payload && typeof payload === "object" && "error" in payload
           ? typeof payload.error === "string"
             ? payload.error
             : typeof payload.error === "object" && payload.error && "message" in payload.error && typeof payload.error.message === "string"

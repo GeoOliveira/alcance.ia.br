@@ -28,23 +28,24 @@ export async function POST(request: Request) {
     access = await getShortenerRequestAccess();
     const config = await getWhatsAppGeneratorConfig(access.level);
     if (!config.access.allowed || !config.flags.shortener) throw new SafeHttpError(503, "shortener_disabled", "O encurtamento está temporariamente indisponível.");
+    const body = await readJsonBody(request, 12_000);
+    const parsed = inputSchema.safeParse(body);
+    if (!parsed.success) throw new SafeHttpError(422, "validation_error", "Revise os dados enviados.");
+    const generated = generateWhatsAppLink({ phone: parsed.data.phone, message: parsed.data.message ?? "", messageMaxCharacters: config.messageMaxCharacters });
+    const operationRequestId = parsed.data.requestId ?? requestId;
     const runtime = await getShortenerRuntimeSettings(access.level);
     if (!runtime.available) throw new SafeHttpError(503, "rate_limit_unavailable", "O encurtamento está temporariamente indisponível.");
     if (runtime.dailyLimit === 0) throw new SafeHttpError(429, "rate_limited", "O limite de criação de links curtos foi atingido. Utilize o link oficial ou tente novamente mais tarde.");
-    const rateLimit = await checkRateLimit(request, "whatsapp-shortener", undefined, { limit: runtime.dailyLimit, windowSeconds: 86_400, ...(access.userId ? { identity: `user:${access.userId}` } : {}) });
+    const rateLimit = await checkRateLimit(request, "whatsapp-shortener", undefined, { limit: runtime.dailyLimit, windowSeconds: 86_400, idempotencyKey: operationRequestId, ...(access.userId ? { identity: `user:${access.userId}` } : {}) });
     if (!rateLimit.available) throw new SafeHttpError(503, "rate_limit_unavailable", "O encurtamento está temporariamente indisponível.");
     if (!rateLimit.allowed) {
       await recordShortenerEvent({ requestId, accessLevel: access.level, userId: access.userId, status: "rate_limited", httpStatus: 429, durationMs: Date.now() - startedAt, errorCode: "rate_limited" });
       return errorResponse(new SafeHttpError(429, "rate_limited", "O limite de criação de links curtos foi atingido. Utilize o link oficial ou tente novamente mais tarde."), requestId, { "Retry-After": String(rateLimit.retryAfter) });
     }
-    const body = await readJsonBody(request, 12_000);
-    const parsed = inputSchema.safeParse(body);
-    if (!parsed.success) throw new SafeHttpError(422, "validation_error", "Revise os dados enviados.");
-    const generated = generateWhatsAppLink({ phone: parsed.data.phone, message: parsed.data.message ?? "", messageMaxCharacters: config.messageMaxCharacters });
     const result = await createEncurtaShortLink({
       phone: generated.phone.internationalNumber,
       message: parsed.data.message ?? "",
-      requestId: parsed.data.requestId ?? requestId,
+      requestId: operationRequestId,
       officialUrl: generated.url,
       accessLevel: access.level,
     });

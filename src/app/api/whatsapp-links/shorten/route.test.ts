@@ -26,7 +26,7 @@ describe("POST /api/whatsapp-links/shorten", () => {
     vi.clearAllMocks();
     mocks.access.mockResolvedValue({ userId: null, level: "anonymous" });
     mocks.config.mockResolvedValue({ access: { allowed: true }, flags: { shortener: true }, messageMaxCharacters: 500 });
-    mocks.runtime.mockResolvedValue({ available: true, dailyLimit: 3, fallbackEnabled: true });
+    mocks.runtime.mockResolvedValue({ available: true, dailyLimit: 20, fallbackEnabled: true });
     mocks.rateLimit.mockResolvedValue({ available: true, allowed: true, retryAfter: 0 });
     mocks.record.mockResolvedValue(undefined);
     mocks.shorten.mockResolvedValue({ id: "id-1", slug: "B7xK", shortUrl: "https://encurta.io/B7xK", officialUrl: "https://wa.me/5571999999999?text=Ol%C3%A1", status: "active", expiresAt: null, createdAt: "2026-07-17T20:00:00.000Z", idempotentReplay: false, retryCount: 1 });
@@ -54,13 +54,14 @@ describe("POST /api/whatsapp-links/shorten", () => {
     const response = await POST(request());
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("120");
-    expect(mocks.rateLimit).toHaveBeenCalledWith(expect.any(Request), "whatsapp-shortener", undefined, expect.objectContaining({ limit: 3, windowSeconds: 86400 }));
+    expect(mocks.rateLimit).toHaveBeenCalledWith(expect.any(Request), "whatsapp-shortener", undefined, expect.objectContaining({ limit: 20, windowSeconds: 86400, idempotencyKey: "req_operation123" }));
     expect(mocks.shorten).not.toHaveBeenCalled();
   });
 
   it("rejects generic proxy fields", async () => {
     const response = await POST(request({ phone: "71999999999", destinationUrl: "https://example.com" }));
     expect(response.status).toBe(422);
+    expect(mocks.rateLimit).not.toHaveBeenCalled();
     expect(mocks.shorten).not.toHaveBeenCalled();
   });
 });
