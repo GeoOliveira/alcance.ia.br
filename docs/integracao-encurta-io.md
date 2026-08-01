@@ -28,6 +28,12 @@ O cliente server-only está em `src/lib/integrations/encurta`. A rota pública i
 
 O navegador nunca recebe credenciais nem chama o Encurta.io. O link oficial é mostrado imediatamente e permanece disponível quando o encurtamento falha. O link curto só é aceito após validação de host e slug. O contrato aceita slugs alfanuméricos de 4 a 32 caracteres: novas URLs usam 4 caracteres por padrão, enquanto links antigos maiores continuam válidos.
 
+## Limites e repetição segura
+
+Somente solicitações com telefone e mensagem válidos consomem a cota. O limite padrão é de 20 links por 24 horas para visitantes, 50 para contas gratuitas, 500 para contas premium e 1.000 para administradores; todos os valores permanecem configuráveis em `app_settings`.
+
+O `requestId` também funciona como chave de idempotência do limite local. Repetir a mesma operação durante a janela não consome outra unidade, permitindo tentar novamente após timeout ou indisponibilidade sem penalizar o usuário. Uma nova operação recebe um novo identificador e consome normalmente.
+
 ## Estado inicial
 
 `ENCURTA_INTEGRATION_ENABLED=false`, `encurta_integration=false` e `whatsapp_link_shortener=false`. Sem credenciais e sem flags ativas, nenhuma chamada externa é realizada.

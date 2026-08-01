@@ -33,7 +33,7 @@ function boundedInteger(value: unknown, fallback: number) {
 }
 
 export async function getShortenerRuntimeSettings(level: EncurtaAccessLevel) {
-  const defaults = { anonymous: 3, public: 3, free: 10, premium: 100, admin: 1000 } as const;
+  const defaults = { anonymous: 20, public: 20, free: 50, premium: 500, admin: 1000 } as const;
   const admin = createAdminClient();
   if (!admin) return { available: false, dailyLimit: 0, fallbackEnabled: true };
   const { data, error } = await admin.from("app_settings").select("key,value").in("key", [...settingKeys]);
